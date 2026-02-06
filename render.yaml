@@ -10,7 +10,8 @@ services:
     runtime: node
     region: oregon
     plan: free
-    buildCommand: npm install && npm run build
+    rootDir: server
+    buildCommand: npm install && npm run build && cp ../index.html ./index.html
     startCommand: node dist/index.js
     healthCheckPath: /api/health
     envVars:
@@ -27,4 +28,4 @@ services:
       - key: ENCRYPTION_KEY
         generateValue: true
       - key: CORS_ORIGINS
-        value: https://cayden-bank.onrender.com
+        value: https://cayden-bank-api.onrender.com

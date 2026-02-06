@@ -1,5 +1,5 @@
 import { Knex } from 'knex';
-import { getUuidDefault } from './helpers';
+import { getUuidDefault } from '../utils/helpers';
 
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable('chat_messages', (table) => {
