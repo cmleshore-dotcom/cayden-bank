@@ -82,13 +82,23 @@ app.use('/api/pin', pinRoutes);
 app.use(errorHandler);
 
 async function startServer() {
-  // Run migrations in production
+  // Run migrations (and seed on first deploy) in production
   if (process.env.NODE_ENV === 'production') {
     console.log('Running database migrations...');
     await db.migrate.latest({
       directory: path.join(__dirname, 'db', 'migrations'),
     });
     console.log('Migrations complete.');
+
+    // Seed if no users exist yet (first deploy)
+    const userCount = await db('users').count('* as count').first() as { count: string | number } | undefined;
+    if (!userCount || Number(userCount.count) === 0) {
+      console.log('No users found, running seeds...');
+      await db.seed.run({
+        directory: path.join(__dirname, 'db', 'seeds'),
+      });
+      console.log('Seeds complete.');
+    }
   }
 
   app.listen(Number(PORT), '0.0.0.0', () => {

@@ -11,8 +11,9 @@ services:
     region: oregon
     plan: free
     rootDir: server
-    buildCommand: npm install && npm run build && cp ../index.html ./index.html
+    buildCommand: npm install --include=dev && npm run build && cp ../index.html ./index.html
     startCommand: node dist/index.js
+    nodeVersion: "20"
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
