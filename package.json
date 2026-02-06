@@ -1,0 +1,21 @@
+{
+  "name": "cayden-bank",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "server",
+    "mobile"
+  ],
+  "scripts": {
+    "server:dev": "cd server && npm run dev",
+    "server:build": "cd server && npm run build",
+    "mobile:start": "cd mobile && npx expo start",
+    "db:migrate": "cd server && npx knex migrate:latest",
+    "db:seed": "cd server && npx knex seed:run",
+    "db:rollback": "cd server && npx knex migrate:rollback"
+  },
+  "dependencies": {
+    "expo-linear-gradient": "^15.0.8",
+    "react-native-svg": "^15.15.2"
+  }
+}

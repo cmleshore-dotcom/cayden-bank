@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cayden Bank — Download the App</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #00A86B;
+      --primary-dark: #004D32;
+      --primary-light: #00C97B;
+      --bg: #F5F7F5;
+      --surface: #FFFFFF;
+      --text: #1A2E1A;
+      --text-secondary: #4A6B4A;
+      --text-tertiary: #7A9A7A;
+      --border: #D4E4D4;
+      --accent: #F97316;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    /* ============ HERO ============ */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, #00A86B 0%, #004D32 60%, #002A1A 100%);
+      z-index: 0;
+    }
+
+    .hero-blob-1 {
+      position: absolute;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(0,201,123,0.25) 0%, transparent 70%);
+      top: -200px; right: -100px;
+      border-radius: 50%;
+      animation: float 8s ease-in-out infinite;
+    }
+
+    .hero-blob-2 {
+      position: absolute;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(249,115,22,0.12) 0%, transparent 70%);
+      bottom: -150px; left: -100px;
+      border-radius: 50%;
+      animation: float 10s ease-in-out infinite reverse;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-30px) scale(1.05); }
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      max-width: 800px;
+      padding: 40px 24px;
+    }
+
+    .logo-wrapper {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #00C97B, #004D32);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 0 4px rgba(255,255,255,0.15);
+      margin-bottom: 32px;
+      animation: pulse-glow 3s ease-in-out infinite;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 0 4px rgba(255,255,255,0.15); }
+      50% { box-shadow: 0 20px 80px rgba(0,168,107,0.4), 0 0 0 6px rgba(255,255,255,0.2); }
+    }
+
+    .logo-wrapper svg { width: 90px; height: 90px; }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 4.2rem);
+      font-weight: 900;
+      color: #FFFFFF;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+
+    .hero h1 span { color: #00C97B; }
+
+    .hero .tagline {
+      font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+      color: rgba(255,255,255,0.7);
+      font-weight: 400;
+      margin-bottom: 40px;
+      line-height: 1.6;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 32px;
+      border-radius: 16px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: #FFFFFF;
+      color: #004D32;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.12);
+      color: #FFFFFF;
+      border: 1.5px solid rgba(255,255,255,0.25);
+      backdrop-filter: blur(10px);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.2);
+      transform: translateY(-2px);
+    }
+
+    .btn svg { width: 24px; height: 24px; }
+
+    .hero-badges {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      margin-top: 32px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: rgba(255,255,255,0.6);
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .badge svg { width: 18px; height: 18px; fill: currentColor; }
+
+    /* ============ FEATURES ============ */
+    .features {
+      padding: 100px 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .features h2 {
+      text-align: center;
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    .features .section-sub {
+      text-align: center;
+      font-size: 1.15rem;
+      color: var(--text-secondary);
+      margin-bottom: 60px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      border-radius: 20px;
+      padding: 32px;
+      border: 1px solid var(--border);
+      transition: all 0.3s ease;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0,168,107,0.08);
+      border-color: var(--primary);
+    }
+
+    .feature-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      font-size: 28px;
+    }
+
+    .feature-card h3 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .feature-card p {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    /* ============ SECURITY ============ */
+    .security {
+      padding: 100px 24px;
+      background: linear-gradient(180deg, #F5F7F5 0%, #E8F5E9 100%);
+    }
+
+    .security-inner {
+      max-width: 1000px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .security h2 {
+      font-size: 2.4rem;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .security .section-sub {
+      font-size: 1.15rem;
+      color: var(--text-secondary);
+      margin-bottom: 48px;
+    }
+
+    .security-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      text-align: left;
+    }
+
+    .sec-item {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 24px;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .sec-item .sec-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #00A86B, #004D32);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 20px;
+    }
+
+    .sec-item h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .sec-item p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    /* ============ CTA ============ */
+    .cta {
+      padding: 100px 24px;
+      text-align: center;
+    }
+
+    .cta-card {
+      max-width: 700px;
+      margin: 0 auto;
+      background: linear-gradient(135deg, #00A86B, #004D32);
+      border-radius: 32px;
+      padding: 64px 40px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-card::before {
+      content: '';
+      position: absolute;
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%);
+      top: -100px; right: -50px;
+      border-radius: 50%;
+    }
+
+    .cta-card h2 {
+      font-size: 2rem;
+      font-weight: 800;
+      color: white;
+      margin-bottom: 12px;
+      position: relative;
+    }
+
+    .cta-card p {
+      color: rgba(255,255,255,0.75);
+      font-size: 1.1rem;
+      margin-bottom: 32px;
+      position: relative;
+    }
+
+    .cta-card .btn-primary {
+      display: inline-flex;
+      position: relative;
+    }
+
+    /* ============ FOOTER ============ */
+    footer {
+      padding: 40px 24px;
+      text-align: center;
+      color: var(--text-tertiary);
+      font-size: 0.85rem;
+      border-top: 1px solid var(--border);
+    }
+
+    footer a { color: var(--primary); text-decoration: none; }
+
+    /* ============ RESPONSIVE ============ */
+    @media (max-width: 640px) {
+      .hero-content { padding: 24px 16px; }
+      .features, .security, .cta { padding: 60px 16px; }
+      .cta-card { padding: 40px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========== HERO ========== -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-blob-1"></div>
+    <div class="hero-blob-2"></div>
+
+    <div class="hero-content">
+      <div class="logo-wrapper">
+        <!-- Cayden Goldendoodle Logo (inline SVG) -->
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <g>
+            <ellipse cx="20" cy="48" rx="13" ry="20" fill="#8B4A1F" transform="rotate(-12, 20, 48)"/>
+            <ellipse cx="21" cy="50" rx="9" ry="15" fill="#A65E2A" transform="rotate(-12, 21, 50)"/>
+            <ellipse cx="80" cy="48" rx="13" ry="20" fill="#8B4A1F" transform="rotate(12, 80, 48)"/>
+            <ellipse cx="79" cy="50" rx="9" ry="15" fill="#A65E2A" transform="rotate(12, 79, 50)"/>
+            <circle cx="50" cy="48" r="33" fill="#C47A3A"/>
+            <circle cx="50" cy="14" r="11" fill="#B86D30"/>
+            <circle cx="38" cy="17" r="10" fill="#C47A3A"/>
+            <circle cx="62" cy="17" r="10" fill="#C47A3A"/>
+            <circle cx="44" cy="12" r="8" fill="#D88A45"/>
+            <circle cx="56" cy="12" r="8" fill="#D88A45"/>
+            <circle cx="50" cy="10" r="7" fill="#C47A3A"/>
+            <circle cx="28" cy="24" r="10" fill="#B86D30"/>
+            <circle cx="72" cy="24" r="10" fill="#B86D30"/>
+            <circle cx="34" cy="19" r="8" fill="#C47A3A"/>
+            <circle cx="66" cy="19" r="8" fill="#C47A3A"/>
+            <circle cx="22" cy="36" r="10" fill="#C47A3A"/>
+            <circle cx="78" cy="36" r="10" fill="#C47A3A"/>
+            <circle cx="18" cy="44" r="8" fill="#B86D30"/>
+            <circle cx="82" cy="44" r="8" fill="#B86D30"/>
+            <circle cx="24" cy="52" r="8" fill="#C47A3A"/>
+            <circle cx="76" cy="52" r="8" fill="#C47A3A"/>
+            <circle cx="42" cy="15" r="6" fill="#D88A45"/>
+            <circle cx="58" cy="15" r="6" fill="#D88A45"/>
+            <circle cx="30" cy="30" r="6" fill="#D88A45"/>
+            <circle cx="70" cy="30" r="6" fill="#D88A45"/>
+            <circle cx="36" cy="34" r="7" fill="#C47A3A"/>
+            <circle cx="64" cy="34" r="7" fill="#C47A3A"/>
+            <circle cx="42" cy="32" r="6" fill="#D88A45"/>
+            <circle cx="58" cy="32" r="6" fill="#D88A45"/>
+            <circle cx="50" cy="30" r="6" fill="#C47A3A"/>
+            <circle cx="30" cy="56" r="8" fill="#C47A3A"/>
+            <circle cx="70" cy="56" r="8" fill="#C47A3A"/>
+            <circle cx="34" cy="60" r="6" fill="#D88A45"/>
+            <circle cx="66" cy="60" r="6" fill="#D88A45"/>
+            <circle cx="50" cy="54" r="17" fill="#D4956A"/>
+            <circle cx="50" cy="50" r="12" fill="#DABA8A"/>
+            <circle cx="39" cy="42" r="5.5" fill="#1A0F06"/>
+            <circle cx="41" cy="40" r="2" fill="#FFFFFF"/>
+            <circle cx="37.5" cy="43" r="0.8" fill="#FFFFFF" opacity="0.4"/>
+            <circle cx="61" cy="42" r="5.5" fill="#1A0F06"/>
+            <circle cx="63" cy="40" r="2" fill="#FFFFFF"/>
+            <circle cx="59.5" cy="43" r="0.8" fill="#FFFFFF" opacity="0.4"/>
+            <path d="M32 36 Q36 32 42 34" stroke="#A65E2A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <path d="M58 34 Q64 32 68 36" stroke="#A65E2A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <ellipse cx="50" cy="53" rx="6.5" ry="4.5" fill="#1A0F06"/>
+            <ellipse cx="48" cy="51.5" rx="2" ry="1.2" fill="#3D2815"/>
+            <circle cx="52" cy="51" r="0.8" fill="#3D2815"/>
+            <path d="M50 57.5 Q43 63 38 59" stroke="#6B3A1A" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <path d="M50 57.5 Q57 63 62 59" stroke="#6B3A1A" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <path d="M44 60 Q47 62 50 61 Q53 62 56 60" stroke="#6B3A1A" stroke-width="1" fill="none" stroke-linecap="round"/>
+            <circle cx="50" cy="68" r="8" fill="#C47A3A"/>
+            <circle cx="42" cy="66" r="6" fill="#D88A45"/>
+            <circle cx="58" cy="66" r="6" fill="#D88A45"/>
+            <circle cx="50" cy="72" r="5" fill="#B86D30"/>
+            <circle cx="44" cy="70" r="4" fill="#C47A3A"/>
+            <circle cx="56" cy="70" r="4" fill="#C47A3A"/>
+          </g>
+        </svg>
+      </div>
+
+      <h1>Your Money,<br /><span>Your Way.</span></h1>
+      <p class="tagline">
+        Cayden Bank puts you in control with smart budgeting, instant ExtraCash advances,
+        and bank-grade security &mdash; all in one beautiful app.
+      </p>
+
+      <div class="hero-buttons">
+        <a href="#" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+            <path d="M12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2z"/>
+          </svg>
+          Download for iOS
+        </a>
+        <a href="#" class="btn btn-secondary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          Download for Android
+        </a>
+      </div>
+
+      <div class="hero-badges">
+        <div class="badge">
+          <svg viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+          4.9 Rating
+        </div>
+        <div class="badge">
+          <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          100K+ Users
+        </div>
+        <div class="badge">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Bank-Grade Security
+        </div>
+        <div class="badge">
+          <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          No Hidden Fees
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== FEATURES ========== -->
+  <section class="features">
+    <h2>Everything you need</h2>
+    <p class="section-sub">Smart banking tools that work as hard as you do.</p>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon" style="background: #E8F5E9;">&#9889;</div>
+        <h3>ExtraCash Advances</h3>
+        <p>Get up to $500 when you need it most. No interest, no credit checks. AI-powered eligibility that rewards responsible banking.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: #FFF3E0;">&#128176;</div>
+        <h3>Smart Budgeting</h3>
+        <p>Set budgets by category, track spending in real-time, and get insights to help you save more every month.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: #E3F2FD;">&#127919;</div>
+        <h3>Savings Goals</h3>
+        <p>Create visual savings goals with progress tracking. Whether it's a vacation or emergency fund, we help you get there.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: #F3E5F5;">&#129302;</div>
+        <h3>Cayden AI Chat</h3>
+        <p>Your personal financial assistant. Ask questions about your spending, get budgeting tips, or check your balance &mdash; all in natural language.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: #FFF8E1;">&#128179;</div>
+        <h3>Linked Bank Accounts</h3>
+        <p>Connect your external bank accounts securely. Manage all your finances in one place with encrypted data protection.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background: #E0F2F1;">&#128188;</div>
+        <h3>Side Hustles</h3>
+        <p>Discover curated side hustle opportunities to boost your income. From freelancing to gig work, all in one spot.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== SECURITY ========== -->
+  <section class="security">
+    <div class="security-inner">
+      <h2>Security first. Always.</h2>
+      <p class="section-sub">Your money and data are protected by multiple layers of enterprise-grade security.</p>
+
+      <div class="security-grid">
+        <div class="sec-item">
+          <div class="sec-icon">&#128274;</div>
+          <div>
+            <h4>PIN Code Lock</h4>
+            <p>4-digit PIN locks your app every time you switch away. 3 failed attempts triggers a cooldown.</p>
+          </div>
+        </div>
+        <div class="sec-item">
+          <div class="sec-icon">&#9200;</div>
+          <div>
+            <h4>Auto-Logout</h4>
+            <p>5 minutes of inactivity and you're automatically logged out. Your session is always protected.</p>
+          </div>
+        </div>
+        <div class="sec-item">
+          <div class="sec-icon">&#128272;</div>
+          <div>
+            <h4>AES-256 Encryption</h4>
+            <p>Sensitive data like routing numbers and account details are encrypted at rest with military-grade AES-256-GCM.</p>
+          </div>
+        </div>
+        <div class="sec-item">
+          <div class="sec-icon">&#128170;</div>
+          <div>
+            <h4>Strong Passwords</h4>
+            <p>We require uppercase, lowercase, numbers, and special characters. Real-time strength indicator on signup.</p>
+          </div>
+        </div>
+        <div class="sec-item">
+          <div class="sec-icon">&#128683;</div>
+          <div>
+            <h4>Account Lockout</h4>
+            <p>5 failed login attempts locks the account for 15 minutes. Brute-force attacks are stopped cold.</p>
+          </div>
+        </div>
+        <div class="sec-item">
+          <div class="sec-icon">&#128203;</div>
+          <div>
+            <h4>Audit Logging</h4>
+            <p>Every login, transfer, advance, and security change is logged. Full transparency, full accountability.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== CTA ========== -->
+  <section class="cta">
+    <div class="cta-card">
+      <h2>Ready to take control?</h2>
+      <p>Join thousands who trust Cayden Bank for smarter, safer banking.</p>
+      <a href="#" class="btn btn-primary">
+        Get Cayden Bank &mdash; It's Free
+      </a>
+    </div>
+  </section>
+
+  <!-- ========== FOOTER ========== -->
+  <footer>
+    <p>&copy; 2026 Cayden Bank. All rights reserved. Built with &#10084;&#65039; by the LeShore family.</p>
+    <p style="margin-top: 8px;">
+      <a href="#">Privacy Policy</a> &middot;
+      <a href="#">Terms of Service</a> &middot;
+      <a href="#">Contact Us</a>
+    </p>
+  </footer>
+
+</body>
+</html>
