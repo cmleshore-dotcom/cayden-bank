@@ -19,6 +19,13 @@ mobile/android/
 
 # Server
 server/dist/
+server/knexfile.js
+server/knexfile.d.ts
+server/knexfile.d.ts.map
+server/knexfile.js.map
+
+# Backup files
+*.bak
 
 # Database
 *.sqlite

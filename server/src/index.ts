@@ -27,16 +27,22 @@ const PORT = process.env.PORT || 3000;
 // CORS configuration
 const allowedOrigins = process.env.NODE_ENV === 'production'
   ? (process.env.CORS_ORIGINS || '').split(',').filter(Boolean)
-  : ['http://localhost:8081', 'http://localhost:19006', 'http://127.0.0.1:8081'];
+  : ['http://localhost:8081', 'http://localhost:19006', 'http://127.0.0.1:8081', 'http://10.0.2.2:8081'];
+
+// In development, also allow requests from native mobile apps (no Origin header)
+const corsOptions = {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+};
 
 // Middleware
 app.use(helmet());
-app.use(
-  cors({
-    origin: allowedOrigins,
-    credentials: true,
-  })
-);
+app.use(cors(corsOptions));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json());
 app.use(generalLimiter);

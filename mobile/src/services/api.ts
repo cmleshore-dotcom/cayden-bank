@@ -1,7 +1,19 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 import { getItem, setItem, deleteItem } from '../utils/storage';
 
-const API_BASE_URL = 'http://localhost:3000/api';
+function getApiBaseUrl(): string {
+  // Use the configured API URL from app.json extra (production builds)
+  const configuredUrl = Constants.expoConfig?.extra?.apiUrl;
+  if (configuredUrl) return configuredUrl;
+
+  // Development fallbacks per platform
+  if (Platform.OS === 'android') return 'http://10.0.2.2:3000/api';
+  return 'http://localhost:3000/api';
+}
+
+const API_BASE_URL = getApiBaseUrl();
 
 const api = axios.create({
   baseURL: API_BASE_URL,
