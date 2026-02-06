@@ -51,8 +51,14 @@ app.use(express.json());
 app.use(generalLimiter);
 
 // Serve the web app at root
+// Dev: __dirname = server/src → ../../index.html = repo root
+// Prod: __dirname = server/dist → ../index.html = server/index.html (copied during build)
+const indexPath = process.env.NODE_ENV === 'production'
+  ? path.join(__dirname, '..', 'index.html')
+  : path.join(__dirname, '..', '..', 'index.html');
+
 app.get('/', (_req, res) => {
-  res.sendFile(path.join(__dirname, '..', '..', 'index.html'));
+  res.sendFile(indexPath);
 });
 
 // Health check
