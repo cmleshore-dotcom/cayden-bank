@@ -41,6 +41,11 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json());
 app.use(generalLimiter);
 
+// Root route
+app.get('/', (_req, res) => {
+  res.json({ service: 'Cayden Bank API', version: '1.0.0', docs: '/api/health' });
+});
+
 // Health check
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'Cayden Bank API', timestamp: new Date().toISOString() });
