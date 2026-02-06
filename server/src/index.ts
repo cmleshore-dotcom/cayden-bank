@@ -85,8 +85,8 @@ async function startServer() {
     console.log('Migrations complete.');
   }
 
-  app.listen(PORT, () => {
-    console.log(`Cayden Bank API running on port ${PORT} (${process.env.NODE_ENV || 'development'})`);
+  app.listen(Number(PORT), '0.0.0.0', () => {
+    console.log(`Cayden Bank API running on http://0.0.0.0:${PORT} (${process.env.NODE_ENV || 'development'})`);
   });
 }
 
