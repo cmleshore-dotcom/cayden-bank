@@ -41,15 +41,18 @@ const corsOptions = {
 };
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+}));
 app.use(cors(corsOptions));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json());
 app.use(generalLimiter);
 
-// Root route
+// Serve the web app at root
 app.get('/', (_req, res) => {
-  res.json({ service: 'Cayden Bank API', version: '1.0.0', docs: '/api/health' });
+  res.sendFile(path.join(__dirname, '..', '..', 'index.html'));
 });
 
 // Health check
