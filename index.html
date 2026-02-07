@@ -880,11 +880,17 @@
       <h2>Budget</h2>
       <p>Track your spending by category</p>
     </div>
+    <div id="budget-summary" style="margin:0 20px 16px;background:linear-gradient(135deg,#00A86B,#004D32);border-radius:20px;padding:24px;color:#fff;display:none;">
+      <div style="font-size:0.75rem;opacity:0.7;text-transform:uppercase;letter-spacing:0.5px;">This Month</div>
+      <div id="budget-total" style="font-size:2rem;font-weight:900;margin-top:4px;">$0.00</div>
+      <div id="budget-month-label" style="font-size:0.85rem;opacity:0.7;margin-top:4px;">February 2026</div>
+    </div>
     <div id="budget-content">
       <div class="empty-state">
         <p>Loading budget data...</p>
       </div>
     </div>
+    <div id="budget-prediction" style="display:none;"></div>
   </div>
 
   <!-- ==================== EXTRACASH SCREEN ==================== -->
@@ -898,13 +904,17 @@
         <p>Checking eligibility...</p>
       </div>
     </div>
+    <div id="extracash-history" style="padding:0 20px;display:none;"></div>
   </div>
 
   <!-- ==================== GOALS SCREEN ==================== -->
   <div id="goals-screen" class="screen">
-    <div class="screen-header">
-      <h2>Savings Goals</h2>
-      <p>Track progress toward your goals</p>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 20px 12px;">
+      <div>
+        <h2 style="font-size:1.5rem;font-weight:800;">Savings Goals</h2>
+        <p style="font-size:0.85rem;color:var(--text-secondary);margin-top:2px;">Track progress toward your goals</p>
+      </div>
+      <button onclick="openModal('create-goal')" style="width:40px;height:40px;border-radius:50%;background:var(--primary);color:#fff;border:none;font-size:1.5rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,168,107,0.3);">+</button>
     </div>
     <div id="goals-content">
       <div class="empty-state">
@@ -936,10 +946,33 @@
       </button>
     </div>
     <div class="menu-group">
+      <button class="menu-item" onclick="openModal('side-hustles')">
+        <div class="left"><div class="menu-icon" style="background:#FEF3C7">&#128188;</div><span class="label">Side Hustles</span></div>
+        <svg width="16" height="16" fill="none" stroke="var(--text-tertiary)" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+      <button class="menu-item" onclick="openModal('chat')">
+        <div class="left"><div class="menu-icon" style="background:#E0E7FF">&#129302;</div><span class="label">Cayden AI Chat</span></div>
+        <svg width="16" height="16" fill="none" stroke="var(--text-tertiary)" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+    </div>
+    <div class="menu-group">
+      <button class="menu-item" onclick="openModal('profile')">
+        <div class="left"><div class="menu-icon" style="background:#F0FFF4">&#128100;</div><span class="label">Profile & Settings</span></div>
+        <svg width="16" height="16" fill="none" stroke="var(--text-tertiary)" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+      <button class="menu-item" onclick="openModal('security')">
+        <div class="left"><div class="menu-icon" style="background:#FEF2F2">&#128274;</div><span class="label">Security</span></div>
+        <svg width="16" height="16" fill="none" stroke="var(--text-tertiary)" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+    </div>
+    <div class="menu-group">
       <button class="menu-item danger" onclick="doLogout()">
         <div class="left"><div class="menu-icon" style="background:#FEF2F2">&#128682;</div><span class="label">Sign Out</span></div>
         <svg width="16" height="16" fill="none" stroke="var(--error)" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
       </button>
+    </div>
+    <div style="text-align:center;padding:20px;color:var(--text-tertiary);font-size:0.75rem;">
+      Cayden Bank v1.0 &middot; Your Money, Your Way
     </div>
   </div>
 
@@ -1290,28 +1323,72 @@ function renderExtraCashBanner() {
 // ============================================================
 async function loadBudget() {
   const container = $('budget-content');
+  const summaryEl = $('budget-summary');
+  const predictionEl = $('budget-prediction');
   try {
     const res = await apiFetch('/transactions/summary');
     const data = await res.json();
     if (data.status !== 'success') throw new Error();
 
-    const cats = data.data.byCategory || data.data;
-    if (!cats || Object.keys(cats).length === 0) {
-      container.innerHTML = '<div class="empty-state"><p>No spending data yet. Start making purchases to see your budget.</p></div>';
+    const summary = data.data;
+    const totalSpent = parseFloat(summary.totalSpent) || 0;
+    const categories = summary.categories || [];
+
+    // Show summary header
+    summaryEl.style.display = 'block';
+    $('budget-total').textContent = formatCurrency(totalSpent);
+    const monthDate = summary.month ? new Date(summary.month + '-01') : new Date();
+    $('budget-month-label').textContent = monthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+    if (categories.length === 0) {
+      container.innerHTML = '<div class="empty-state"><p style="color:var(--text-tertiary);">No spending data yet. Make some purchases to see your budget breakdown.</p></div>';
       return;
     }
 
-    const maxVal = Math.max(...Object.values(cats).map(Number), 1);
+    const maxVal = Math.max(...categories.map(c => parseFloat(c.total) || 0), 1);
     const catColors = { food: '#F59E0B', transport: '#3B82F6', entertainment: '#EC4899', shopping: '#8B5CF6', bills: '#EF4444', health: '#10B981', education: '#6366F1', other: '#6B7280' };
 
-    container.innerHTML = `<div class="budget-overview">${Object.entries(cats).map(([cat, amt]) => {
-      const pct = Math.min((Number(amt) / maxVal) * 100, 100);
-      const color = catColors[cat] || '#6B7280';
+    container.innerHTML = `<div class="budget-overview">${categories.map(c => {
+      const amt = parseFloat(c.total) || 0;
+      const pct = Math.min((amt / maxVal) * 100, 100);
+      const color = catColors[c.category] || '#6B7280';
       return `<div class="budget-bar-container">
-        <div class="budget-bar-label"><span class="cat">${cat.charAt(0).toUpperCase() + cat.slice(1)}</span><span class="amt">${formatCurrency(amt)}</span></div>
+        <div class="budget-bar-label"><span class="cat">${c.category.charAt(0).toUpperCase() + c.category.slice(1)}</span><span class="amt">${formatCurrency(amt)}</span></div>
         <div class="budget-bar"><div class="budget-bar-fill" style="width:${pct}%;background:${color}"></div></div>
       </div>`;
     }).join('')}</div>`;
+
+    // Load prediction
+    try {
+      const predRes = await apiFetch('/budget/prediction');
+      const predData = await predRes.json();
+      if (predData.status === 'success') {
+        const p = predData.data;
+        predictionEl.style.display = 'block';
+        predictionEl.innerHTML = `
+          <div style="margin:0 20px;padding:0 0 16px;">
+            <h3 style="font-size:1rem;font-weight:700;margin-bottom:12px;">Month-End Prediction</h3>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div style="background:var(--surface);border-radius:16px;padding:16px;border:1px solid var(--border);">
+                <div style="font-size:0.7rem;color:var(--text-tertiary);text-transform:uppercase;">Daily Avg</div>
+                <div style="font-size:1.1rem;font-weight:800;margin-top:4px;">${formatCurrency(p.dailyAverage || 0)}</div>
+              </div>
+              <div style="background:var(--surface);border-radius:16px;padding:16px;border:1px solid var(--border);">
+                <div style="font-size:0.7rem;color:var(--text-tertiary);text-transform:uppercase;">Days Left</div>
+                <div style="font-size:1.1rem;font-weight:800;margin-top:4px;">${p.daysRemaining || 0}</div>
+              </div>
+              <div style="background:var(--surface);border-radius:16px;padding:16px;border:1px solid var(--border);">
+                <div style="font-size:0.7rem;color:var(--text-tertiary);text-transform:uppercase;">Predicted Spend</div>
+                <div style="font-size:1.1rem;font-weight:800;margin-top:4px;">${formatCurrency(p.predictedSpend || 0)}</div>
+              </div>
+              <div style="background:var(--surface);border-radius:16px;padding:16px;border:1px solid var(--border);">
+                <div style="font-size:0.7rem;color:var(--text-tertiary);text-transform:uppercase;">Predicted Balance</div>
+                <div style="font-size:1.1rem;font-weight:800;margin-top:4px;color:${(p.predictedBalance || 0) >= 0 ? 'var(--success)' : 'var(--error)'};">${formatCurrency(p.predictedBalance || 0)}</div>
+              </div>
+            </div>
+          </div>`;
+      }
+    } catch {}
   } catch {
     container.innerHTML = '<div class="empty-state"><p>Could not load budget data.</p></div>';
   }
@@ -1320,8 +1397,12 @@ async function loadBudget() {
 // ============================================================
 // EXTRACASH
 // ============================================================
+let selectedAdvanceAmount = 100;
+let selectedDeliverySpeed = 'standard';
+
 async function loadExtraCash() {
   const container = $('extracash-content');
+  const historyEl = $('extracash-history');
   try {
     const res = await apiFetch('/advances/eligibility');
     const data = await res.json();
@@ -1339,38 +1420,134 @@ async function loadExtraCash() {
       return;
     }
 
+    const maxAmt = e.maxAmount;
+    selectedAdvanceAmount = Math.min(100, maxAmt);
+
     container.innerHTML = `
-      <div style="background:linear-gradient(135deg,#00A86B,#004D32);border-radius:24px;padding:28px 24px;color:#fff;margin-bottom:16px;position:relative;overflow:hidden;">
+      <div style="background:linear-gradient(135deg,#00A86B,#004D32);border-radius:24px;padding:28px 24px;color:#fff;margin-bottom:20px;position:relative;overflow:hidden;">
         <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.1);"></div>
         <div style="font-size:0.8rem;opacity:0.8;text-transform:uppercase;letter-spacing:0.5px;">Available to Borrow</div>
-        <div style="font-size:2.2rem;font-weight:900;margin-top:4px;">${formatCurrency(e.maxAmount)}</div>
+        <div style="font-size:2.2rem;font-weight:900;margin-top:4px;">${formatCurrency(maxAmt)}</div>
         <div style="font-size:0.85rem;opacity:0.7;margin-top:8px;">Score: ${e.score}/100 &middot; No interest &middot; No credit check</div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
-        <button class="btn-full btn-primary-solid" onclick="requestAdvance('standard')" style="margin:0;padding:14px;">Standard (Free)</button>
-        <button class="btn-full" onclick="requestAdvance('express')" style="margin:0;padding:14px;background:var(--surface);border:2px solid var(--primary);color:var(--primary);font-weight:700;border-radius:14px;cursor:pointer;">Express (5%)</button>
+
+      <div style="background:var(--surface);border-radius:20px;padding:24px;border:1px solid var(--border);margin-bottom:16px;">
+        <div style="text-align:center;margin-bottom:16px;">
+          <div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:4px;">Borrow Amount</div>
+          <div id="advance-amount-display" style="font-size:2rem;font-weight:900;color:var(--primary);">${formatCurrency(selectedAdvanceAmount)}</div>
+        </div>
+        <input type="range" id="advance-slider" min="25" max="${maxAmt}" step="25" value="${selectedAdvanceAmount}"
+          oninput="updateAdvanceAmount(this.value)"
+          style="width:100%;accent-color:var(--primary);height:6px;margin-bottom:12px;" />
+        <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-tertiary);margin-bottom:16px;">
+          <span>$25</span><span>${formatCurrency(maxAmt)}</span>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:center;margin-bottom:16px;">
+          ${[50,100,200].filter(v => v <= maxAmt).map(v =>
+            `<button onclick="setAdvanceAmount(${v})" style="padding:8px 16px;border-radius:20px;border:1.5px solid var(--border);background:var(--bg);font-size:0.8rem;font-weight:700;cursor:pointer;font-family:inherit;">$${v}</button>`
+          ).join('')}
+          <button onclick="setAdvanceAmount(${maxAmt})" style="padding:8px 16px;border-radius:20px;border:1.5px solid var(--primary);background:#F0FFF4;color:var(--primary);font-size:0.8rem;font-weight:700;cursor:pointer;font-family:inherit;">Max</button>
+        </div>
       </div>
-      <p style="text-align:center;font-size:0.75rem;color:var(--text-tertiary);">Standard: 1-3 days &middot; Express: instant with 5% fee &middot; Repay in 14 days</p>
+
+      <div style="background:var(--surface);border-radius:20px;padding:20px;border:1px solid var(--border);margin-bottom:16px;">
+        <div style="font-size:0.85rem;font-weight:700;margin-bottom:12px;">Delivery Speed</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <button id="speed-standard" onclick="setDeliverySpeed('standard')" class="btn-full btn-primary-solid" style="margin:0;padding:14px;font-size:0.85rem;">Standard (Free)</button>
+          <button id="speed-express" onclick="setDeliverySpeed('express')" class="btn-full" style="margin:0;padding:14px;background:var(--surface);border:2px solid var(--primary);color:var(--primary);font-weight:700;border-radius:14px;cursor:pointer;font-size:0.85rem;">Express (5%)</button>
+        </div>
+        <p style="text-align:center;font-size:0.7rem;color:var(--text-tertiary);margin-top:8px;">Standard: 1-3 days &middot; Express: instant with 5% fee</p>
+      </div>
+
+      <div id="advance-summary" style="background:var(--surface);border-radius:20px;padding:20px;border:1px solid var(--border);margin-bottom:16px;"></div>
+
+      <button class="btn-full btn-primary-solid" onclick="requestAdvance()" style="margin:0 0 16px;padding:16px;font-size:1rem;">Get ExtraCash</button>
+      <p style="text-align:center;font-size:0.7rem;color:var(--text-tertiary);margin-bottom:20px;">Repay within 14 days &middot; No late fees &middot; No credit check</p>
     `;
+    updateAdvanceSummary();
+
+    // Load advance history
+    try {
+      const histRes = await apiFetch('/advances');
+      const histData = await histRes.json();
+      if (histData.status === 'success' && histData.data.length > 0) {
+        historyEl.style.display = 'block';
+        historyEl.innerHTML = `
+          <h3 style="font-size:1rem;font-weight:700;margin-bottom:12px;">Advance History</h3>
+          ${histData.data.map(a => {
+            const statusColors = { funded: '#F59E0B', repaid: '#00A86B', pending: '#3B82F6', overdue: '#EF4444' };
+            const color = statusColors[a.status] || '#6B7280';
+            return `<div style="background:var(--surface);border-radius:16px;padding:16px;border:1px solid var(--border);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-weight:700;">${formatCurrency(a.amount)}</div>
+                <div style="font-size:0.75rem;color:var(--text-tertiary);">${formatDate(a.createdAt)}</div>
+              </div>
+              <span style="padding:4px 12px;border-radius:12px;font-size:0.7rem;font-weight:700;text-transform:uppercase;background:${color}20;color:${color};">${a.status}</span>
+            </div>`;
+          }).join('')}`;
+      }
+    } catch {}
   } catch {
     container.innerHTML = '<div class="empty-state"><p>Could not check eligibility.</p></div>';
   }
 }
 
-async function requestAdvance(speed) {
-  const amt = state.eligibility?.maxAmount;
-  if (!amt) return;
+function updateAdvanceAmount(val) {
+  selectedAdvanceAmount = parseInt(val);
+  const display = $('advance-amount-display');
+  if (display) display.textContent = formatCurrency(selectedAdvanceAmount);
+  updateAdvanceSummary();
+}
 
+function setAdvanceAmount(val) {
+  selectedAdvanceAmount = val;
+  const slider = $('advance-slider');
+  if (slider) slider.value = val;
+  updateAdvanceAmount(val);
+}
+
+function setDeliverySpeed(speed) {
+  selectedDeliverySpeed = speed;
+  const stdBtn = $('speed-standard');
+  const expBtn = $('speed-express');
+  if (speed === 'standard') {
+    stdBtn.className = 'btn-full btn-primary-solid';
+    stdBtn.style.cssText = 'margin:0;padding:14px;font-size:0.85rem;';
+    expBtn.className = 'btn-full';
+    expBtn.style.cssText = 'margin:0;padding:14px;background:var(--surface);border:2px solid var(--primary);color:var(--primary);font-weight:700;border-radius:14px;cursor:pointer;font-size:0.85rem;';
+  } else {
+    expBtn.className = 'btn-full btn-primary-solid';
+    expBtn.style.cssText = 'margin:0;padding:14px;font-size:0.85rem;';
+    stdBtn.className = 'btn-full';
+    stdBtn.style.cssText = 'margin:0;padding:14px;background:var(--surface);border:2px solid var(--primary);color:var(--primary);font-weight:700;border-radius:14px;cursor:pointer;font-size:0.85rem;';
+  }
+  updateAdvanceSummary();
+}
+
+function updateAdvanceSummary() {
+  const fee = selectedDeliverySpeed === 'express' ? selectedAdvanceAmount * 0.05 : 0;
+  const total = selectedAdvanceAmount + fee;
+  const summaryEl = $('advance-summary');
+  if (!summaryEl) return;
+  summaryEl.innerHTML = `
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:0.85rem;"><span style="color:var(--text-secondary);">Amount</span><span style="font-weight:700;">${formatCurrency(selectedAdvanceAmount)}</span></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:0.85rem;"><span style="color:var(--text-secondary);">Fee</span><span style="font-weight:700;">${fee > 0 ? formatCurrency(fee) : 'Free'}</span></div>
+    <div style="height:1px;background:var(--border);margin:8px 0;"></div>
+    <div style="display:flex;justify-content:space-between;font-size:0.95rem;"><span style="font-weight:700;">Total Repayment</span><span style="font-weight:900;color:var(--primary);">${formatCurrency(total)}</span></div>
+  `;
+}
+
+async function requestAdvance() {
   try {
     const res = await apiFetch('/advances', {
       method: 'POST',
-      body: JSON.stringify({ amount: Math.min(amt, 100), deliverySpeed: speed, tip: 0 }),
+      body: JSON.stringify({ amount: selectedAdvanceAmount, deliverySpeed: selectedDeliverySpeed, tip: 0 }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Request failed');
-    showToast('Advance approved! ' + formatCurrency(data.data.amount), 'success');
-    closeModal();
+    showToast('ExtraCash approved! ' + formatCurrency(data.data.amount), 'success');
     await loadDashboard();
+    await loadExtraCash();
   } catch (err) {
     showToast(err.message, 'error');
   }
@@ -1387,25 +1564,35 @@ async function loadGoals() {
     if (data.status !== 'success') throw new Error();
 
     state.goals = data.data;
-    const icons = { 'piggy-bank': '&#128183;', vacation: '&#9992;&#65039;', car: '&#128663;', education: '&#127891;', emergency: '&#128680;', home: '&#127968;' };
+    const icons = { 'piggy-bank': '&#128183;', vacation: '&#9992;&#65039;', car: '&#128663;', education: '&#127891;', emergency: '&#128680;', home: '&#127968;', default: '&#127919;' };
 
     if (!state.goals.length) {
-      container.innerHTML = '<div class="empty-state"><p>No savings goals yet. Create one to start saving!</p></div>';
+      container.innerHTML = `<div style="text-align:center;padding:60px 20px;">
+        <div style="font-size:64px;margin-bottom:16px;">&#127919;</div>
+        <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:8px;">No Goals Yet</h3>
+        <p style="color:var(--text-secondary);font-size:0.9rem;line-height:1.5;margin-bottom:24px;">Create your first savings goal and start building toward your dreams.</p>
+        <button class="btn-full btn-primary-solid" onclick="openModal('create-goal')" style="max-width:260px;margin:0 auto;">Create Your First Goal</button>
+      </div>`;
       return;
     }
 
     container.innerHTML = state.goals.map(g => {
       const pct = g.targetAmount > 0 ? Math.min((g.currentAmount / g.targetAmount) * 100, 100) : 0;
+      const isComplete = pct >= 100;
       return `<div class="goal-card">
         <div class="goal-header">
-          <span class="goal-name">${g.name}</span>
-          <div class="goal-icon">${icons[g.icon] || '&#127919;'}</div>
+          <div>
+            <span class="goal-name">${g.name}</span>
+            ${isComplete ? '<span style="display:inline-block;margin-left:8px;padding:2px 8px;border-radius:8px;font-size:0.65rem;font-weight:700;background:#D4EDDA;color:#00A86B;">COMPLETE</span>' : ''}
+          </div>
+          <div class="goal-icon">${icons[g.icon] || icons.default}</div>
         </div>
         <div class="goal-progress-bar"><div class="goal-progress-fill" style="width:${pct}%"></div></div>
         <div class="goal-amounts">
           <span class="current">${formatCurrency(g.currentAmount)}</span>
-          <span class="target">${formatCurrency(g.targetAmount)}</span>
+          <span class="target">of ${formatCurrency(g.targetAmount)}</span>
         </div>
+        ${!isComplete ? `<button onclick="openModal('fund-goal',{goalId:'${g.id}',goalName:'${g.name}',remaining:${g.targetAmount - g.currentAmount}})" style="width:100%;margin-top:12px;padding:10px;border-radius:12px;border:1.5px solid var(--primary);background:#F0FFF4;color:var(--primary);font-weight:700;font-size:0.85rem;cursor:pointer;font-family:inherit;">Add Funds</button>` : ''}
       </div>`;
     }).join('');
   } catch {
@@ -1413,10 +1600,43 @@ async function loadGoals() {
   }
 }
 
+async function createGoal(name, targetAmount) {
+  try {
+    const res = await apiFetch('/goals', {
+      method: 'POST',
+      body: JSON.stringify({ name, targetAmount: parseFloat(targetAmount) }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to create goal');
+    showToast('Goal created: ' + name, 'success');
+    closeModal();
+    await loadGoals();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+async function fundGoal(goalId, amount) {
+  try {
+    const res = await apiFetch(`/goals/${goalId}/fund`, {
+      method: 'POST',
+      body: JSON.stringify({ amount: parseFloat(amount) }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to fund goal');
+    showToast('Added ' + formatCurrency(amount) + ' to goal!', 'success');
+    closeModal();
+    await loadGoals();
+    await loadDashboard();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
 // ============================================================
 // MODALS
 // ============================================================
-function openModal(type) {
+function openModal(type, data) {
   const body = $('modal-body');
   const checking = state.accounts.find(a => a.accountType === 'checking');
 
@@ -1455,6 +1675,70 @@ function openModal(type) {
         <option value="education">Education</option><option value="other">Other</option>
       </select></div>
       <button class="btn-full btn-primary-solid" onclick="doPurchase()">Make Purchase</button>`;
+  } else if (type === 'create-goal') {
+    body.innerHTML = `<h3>Create Savings Goal</h3>
+      <div class="form-group"><label>Goal Name</label><input type="text" id="goal-name" placeholder="Vacation, New Car, Emergency Fund..." required /></div>
+      <div class="form-group"><label>Target Amount</label><input type="number" id="goal-target" min="1" step="0.01" placeholder="1000.00" required /></div>
+      <button class="btn-full btn-primary-solid" onclick="createGoal($('goal-name').value, $('goal-target').value)">Create Goal</button>`;
+  } else if (type === 'fund-goal') {
+    body.innerHTML = `<h3>Fund: ${data.goalName}</h3>
+      <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:16px;">Remaining: ${formatCurrency(data.remaining)}</p>
+      <div class="form-group"><label>Amount</label><input type="number" id="fund-amount" min="0.01" step="0.01" placeholder="0.00" max="${data.remaining}" required /></div>
+      <button class="btn-full btn-primary-solid" onclick="fundGoal('${data.goalId}', $('fund-amount').value)">Add Funds</button>`;
+  } else if (type === 'chat') {
+    body.innerHTML = `<h3>Cayden AI Chat</h3>
+      <div id="chat-messages" style="max-height:300px;overflow-y:auto;margin-bottom:16px;padding:8px 0;">
+        <div style="background:#F0FFF4;border-radius:16px;padding:12px 16px;margin-bottom:8px;max-width:85%;">
+          <div style="font-size:0.75rem;color:var(--primary);font-weight:700;margin-bottom:4px;">Cayden AI</div>
+          <div style="font-size:0.85rem;line-height:1.5;">Hi! I'm Cayden AI. Ask me about your balance, spending, goals, ExtraCash, or side hustles!</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="chat-input" placeholder="Ask me anything..." style="flex:1;padding:12px 16px;border:1.5px solid var(--border);border-radius:24px;font-size:0.9rem;font-family:inherit;outline:none;" onkeydown="if(event.key==='Enter')sendChat()" />
+        <button onclick="sendChat()" style="width:44px;height:44px;border-radius:50%;background:var(--primary);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+          <svg width="20" height="20" fill="none" stroke="#fff" stroke-width="2" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>
+        </button>
+      </div>`;
+    loadChatHistory();
+  } else if (type === 'side-hustles') {
+    body.innerHTML = `<h3>Side Hustles</h3><div id="hustles-list" style="max-height:400px;overflow-y:auto;"><div class="empty-state"><p>Loading opportunities...</p></div></div>`;
+    loadSideHustles();
+  } else if (type === 'profile') {
+    const u = state.user || {};
+    body.innerHTML = `<h3>Profile & Settings</h3>
+      <div style="text-align:center;margin-bottom:20px;">
+        <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-dark));display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.5rem;font-weight:800;margin:0 auto 8px;">${(u.firstName?.[0] || '') + (u.lastName?.[0] || '')}</div>
+        <div style="font-weight:700;font-size:1.1rem;">${u.firstName || ''} ${u.lastName || ''}</div>
+        <div style="font-size:0.85rem;color:var(--text-secondary);">${u.email || ''}</div>
+        <span style="display:inline-block;margin-top:8px;padding:3px 12px;border-radius:10px;font-size:0.7rem;font-weight:700;background:#D4EDDA;color:#00A86B;">VERIFIED</span>
+      </div>
+      <div style="background:var(--bg);border-radius:16px;padding:16px;">
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-secondary);font-size:0.85rem;">Phone</span><span style="font-weight:600;font-size:0.85rem;">${u.phone || 'Not set'}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-secondary);font-size:0.85rem;">Member Since</span><span style="font-weight:600;font-size:0.85rem;">${u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-US', {month:'long',year:'numeric'}) : 'N/A'}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;"><span style="color:var(--text-secondary);font-size:0.85rem;">KYC Status</span><span style="font-weight:600;font-size:0.85rem;color:var(--success);">${u.kycStatus || 'verified'}</span></div>
+      </div>`;
+  } else if (type === 'security') {
+    body.innerHTML = `<h3>Security</h3>
+      <div style="margin-bottom:20px;">
+        <h4 style="font-size:0.9rem;font-weight:700;margin-bottom:12px;">Change Password</h4>
+        <div class="form-group"><label>Current Password</label><input type="password" id="sec-current-pw" placeholder="Current password" /></div>
+        <div class="form-group"><label>New Password</label><input type="password" id="sec-new-pw" placeholder="Min 8 chars, upper, lower, number, special" /></div>
+        <button class="btn-full btn-primary-solid" onclick="changePassword()">Update Password</button>
+      </div>
+      <div style="background:var(--bg);border-radius:16px;padding:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+          <span style="font-size:0.85rem;font-weight:600;">Auto-logout</span>
+          <span style="font-size:0.8rem;color:var(--text-secondary);">5 min inactivity</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+          <span style="font-size:0.85rem;font-weight:600;">Encryption</span>
+          <span style="font-size:0.8rem;color:var(--success);">AES-256-GCM</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
+          <span style="font-size:0.85rem;font-weight:600;">Account Lockout</span>
+          <span style="font-size:0.8rem;color:var(--text-secondary);">After 5 failed attempts</span>
+        </div>
+      </div>`;
   }
 
   $('modal-overlay').classList.add('show');
@@ -1525,6 +1809,127 @@ async function doPurchase() {
     showToast('Purchase: ' + formatCurrency(amount) + ' at ' + merchant, 'success');
     $('modal-overlay').classList.remove('show');
     await loadDashboard();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+// ============================================================
+// CHAT
+// ============================================================
+async function loadChatHistory() {
+  try {
+    const res = await apiFetch('/chat/history');
+    const data = await res.json();
+    if (data.status === 'success' && data.data.length > 0) {
+      const container = $('chat-messages');
+      const msgs = data.data.slice(-10).reverse();
+      msgs.forEach(m => {
+        const isUser = m.role === 'user';
+        container.innerHTML += `<div style="display:flex;${isUser ? 'justify-content:flex-end;' : ''}margin-bottom:8px;">
+          <div style="background:${isUser ? 'linear-gradient(135deg,var(--primary),var(--primary-dark))' : '#F0FFF4'};color:${isUser ? '#fff' : 'var(--text)'};border-radius:16px;padding:10px 16px;max-width:85%;font-size:0.85rem;line-height:1.5;">
+            ${m.content}
+          </div>
+        </div>`;
+      });
+      container.scrollTop = container.scrollHeight;
+    }
+  } catch {}
+}
+
+async function sendChat() {
+  const input = $('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+
+  const container = $('chat-messages');
+  container.innerHTML += `<div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+    <div style="background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border-radius:16px;padding:10px 16px;max-width:85%;font-size:0.85rem;line-height:1.5;">${msg}</div>
+  </div>`;
+  container.innerHTML += `<div id="chat-typing" style="margin-bottom:8px;"><div style="background:#F0FFF4;border-radius:16px;padding:10px 16px;max-width:85%;font-size:0.85rem;color:var(--text-tertiary);">Thinking...</div></div>`;
+  container.scrollTop = container.scrollHeight;
+
+  try {
+    const res = await apiFetch('/chat', {
+      method: 'POST',
+      body: JSON.stringify({ message: msg }),
+    });
+    const data = await res.json();
+    const typing = $('chat-typing');
+    if (typing) typing.remove();
+
+    const reply = data.data?.response || data.data?.message || 'Sorry, I could not process that.';
+    container.innerHTML += `<div style="margin-bottom:8px;">
+      <div style="background:#F0FFF4;border-radius:16px;padding:10px 16px;max-width:85%;font-size:0.85rem;line-height:1.5;">
+        <div style="font-size:0.7rem;color:var(--primary);font-weight:700;margin-bottom:4px;">Cayden AI</div>
+        ${reply}
+      </div>
+    </div>`;
+    container.scrollTop = container.scrollHeight;
+  } catch {
+    const typing = $('chat-typing');
+    if (typing) typing.remove();
+    container.innerHTML += `<div style="margin-bottom:8px;"><div style="background:#FEF2F2;border-radius:16px;padding:10px 16px;max-width:85%;font-size:0.85rem;color:var(--error);">Failed to send message.</div></div>`;
+  }
+}
+
+// ============================================================
+// SIDE HUSTLES
+// ============================================================
+async function loadSideHustles() {
+  try {
+    const res = await apiFetch('/sidehustles');
+    const data = await res.json();
+    const list = $('hustles-list');
+    const hustles = data.data || [];
+
+    if (hustles.length === 0) {
+      list.innerHTML = '<div class="empty-state"><p>No side hustles available right now.</p></div>';
+      return;
+    }
+
+    const catColors = { remote: '#3B82F6', seasonal: '#F59E0B', part_time: '#8B5CF6', gig: '#EC4899', freelance: '#10B981' };
+
+    list.innerHTML = hustles.map(h => {
+      const color = catColors[h.category] || '#6B7280';
+      return `<div style="background:var(--bg);border-radius:16px;padding:16px;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:0.9rem;">${h.title}</div>
+            <div style="font-size:0.8rem;color:var(--text-secondary);margin-top:2px;">${h.company}</div>
+          </div>
+          <span style="padding:3px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;text-transform:uppercase;background:${color}20;color:${color};">${(h.category || '').replace('_',' ')}</span>
+        </div>
+        <div style="font-size:0.8rem;color:var(--text-secondary);margin-top:8px;line-height:1.4;">${h.description || ''}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+          <span style="font-weight:700;color:var(--primary);font-size:0.85rem;">${h.payRange || h.pay_range || ''}</span>
+          <span style="font-size:0.75rem;color:var(--text-tertiary);">${h.location || ''}</span>
+        </div>
+      </div>`;
+    }).join('');
+  } catch {
+    $('hustles-list').innerHTML = '<div class="empty-state"><p>Could not load side hustles.</p></div>';
+  }
+}
+
+// ============================================================
+// SECURITY
+// ============================================================
+async function changePassword() {
+  const current = $('sec-current-pw').value;
+  const newPw = $('sec-new-pw').value;
+  if (!current || !newPw) { showToast('Fill in both fields', 'error'); return; }
+
+  try {
+    const res = await apiFetch('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword: current, newPassword: newPw }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed');
+    showToast('Password updated!', 'success');
+    closeModal();
   } catch (err) {
     showToast(err.message, 'error');
   }

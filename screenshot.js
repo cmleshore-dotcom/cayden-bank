@@ -45,71 +45,56 @@ function apiCall(path, method, body) {
   const dir = '/home/user/cayden-bank/screenshots';
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
-  // 1. Clean login screen
+  // 1. Login screen
   console.log('1. Login screen...');
   await page.goto(BASE, { waitUntil: 'networkidle', timeout: 15000 });
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(500);
   await page.screenshot({ path: `${dir}/01-login.png` });
 
-  // 2. Inject tokens and go to the app
+  // 2. Inject tokens
   await page.evaluate(({ t, rt }) => {
     localStorage.setItem('cb_access', t);
     localStorage.setItem('cb_refresh', rt);
   }, { t: token, rt: refreshToken });
 
   await page.goto(BASE, { waitUntil: 'networkidle', timeout: 15000 });
-  // Wait for the home screen to actually render (init() calls /auth/me then shows home)
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(3000);
 
-  // Wait until the home-screen is visible
+  // Wait for home screen
   await page.waitForFunction(() => {
     const el = document.getElementById('home-screen');
-    return el && el.style.display !== 'none';
+    return el && el.classList.contains('active');
   }, { timeout: 10000 }).catch(() => {});
   await page.waitForTimeout(1000);
 
-  // Now hide the login/register screens that sit above in the DOM
-  // and only show the active screen
-  await page.evaluate(() => {
-    // Force hide auth screens
-    const login = document.getElementById('login-screen');
-    const register = document.getElementById('register-screen');
-    if (login) login.style.display = 'none';
-    if (register) register.style.display = 'none';
-    // Scroll to top
-    window.scrollTo(0, 0);
-  });
-  await page.waitForTimeout(500);
-
-  // 3. Home screen
-  console.log('2. Home dashboard...');
-  await page.screenshot({ path: `${dir}/02-home.png` });
-  // Scroll down for full transaction list
-  await page.evaluate(() => window.scrollTo(0, 600));
-  await page.waitForTimeout(300);
-  await page.screenshot({ path: `${dir}/02-home-scrolled.png` });
-  await page.evaluate(() => window.scrollTo(0, 0));
-
-  // Helper
-  const captureTab = async (tabName, num, fileName) => {
-    console.log(`${num}. ${tabName}...`);
-    await page.evaluate((tab) => {
-      navigateTab(tab);
-      window.scrollTo(0, 0);
-    }, tabName);
-    await page.waitForTimeout(2000);
-    // Hide auth screens again
+  // Hide auth screens
+  const hideAuth = async () => {
     await page.evaluate(() => {
-      const login = document.getElementById('login-screen');
-      const register = document.getElementById('register-screen');
-      if (login) login.style.display = 'none';
-      if (register) register.style.display = 'none';
+      const l = document.getElementById('login-screen');
+      const r = document.getElementById('register-screen');
+      if (l) l.style.display = 'none';
+      if (r) r.style.display = 'none';
       window.scrollTo(0, 0);
     });
     await page.waitForTimeout(300);
+  };
+
+  await hideAuth();
+
+  // 3. Home
+  console.log('2. Home...');
+  await page.screenshot({ path: `${dir}/02-home.png` });
+  await page.evaluate(() => window.scrollTo(0, 500));
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${dir}/02-home-scrolled.png` });
+
+  const captureTab = async (tabName, num, fileName) => {
+    console.log(`${num}. ${tabName}...`);
+    await page.evaluate((tab) => { navigateTab(tab); window.scrollTo(0, 0); }, tabName);
+    await page.waitForTimeout(2000);
+    await hideAuth();
     await page.screenshot({ path: `${dir}/${fileName}.png` });
-    // Scroll down for more content
-    await page.evaluate(() => window.scrollTo(0, 400));
+    await page.evaluate(() => window.scrollTo(0, 500));
     await page.waitForTimeout(300);
     await page.screenshot({ path: `${dir}/${fileName}-scroll.png` });
     await page.evaluate(() => window.scrollTo(0, 0));
@@ -120,6 +105,36 @@ function apiCall(path, method, body) {
   await captureTab('goals', 5, '05-goals');
   await captureTab('more', 6, '06-more');
 
+  // 7. Chat modal
+  console.log('7. Chat modal...');
+  await page.evaluate(() => openModal('chat'));
+  await page.waitForTimeout(1000);
+  await page.screenshot({ path: `${dir}/07-chat.png` });
+  await page.evaluate(() => closeModal());
+  await page.waitForTimeout(500);
+
+  // 8. Side Hustles modal
+  console.log('8. Side Hustles...');
+  await page.evaluate(() => openModal('side-hustles'));
+  await page.waitForTimeout(2000);
+  await page.screenshot({ path: `${dir}/08-sidehustles.png` });
+  await page.evaluate(() => closeModal());
+  await page.waitForTimeout(500);
+
+  // 9. Profile modal
+  console.log('9. Profile...');
+  await page.evaluate(() => openModal('profile'));
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${dir}/09-profile.png` });
+  await page.evaluate(() => closeModal());
+  await page.waitForTimeout(500);
+
+  // 10. Security modal
+  console.log('10. Security...');
+  await page.evaluate(() => openModal('security'));
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${dir}/10-security.png` });
+
   await browser.close();
-  console.log('All done!');
+  console.log('\nAll screenshots saved!');
 })();
