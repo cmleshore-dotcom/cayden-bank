@@ -29,4 +29,21 @@ services:
       - key: ENCRYPTION_KEY
         generateValue: true
       - key: CORS_ORIGINS
-        value: https://cayden-bank-api.onrender.com
+        value: https://cayden-bank.onrender.com
+
+  - type: web
+    name: cayden-bank
+    runtime: static
+    region: oregon
+    plan: free
+    rootDir: mobile
+    buildCommand: npx expo export --platform web
+    staticPublishPath: dist
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

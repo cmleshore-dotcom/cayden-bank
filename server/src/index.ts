@@ -27,7 +27,7 @@ const PORT = process.env.PORT || 3000;
 // CORS configuration
 const allowedOrigins = process.env.NODE_ENV === 'production'
   ? (process.env.CORS_ORIGINS || '').split(',').filter(Boolean)
-  : ['http://localhost:8081', 'http://localhost:19006', 'http://127.0.0.1:8081', 'http://10.0.2.2:8081'];
+  : ['http://localhost:8081', 'http://localhost:19006', 'http://127.0.0.1:8081', 'http://10.0.2.2:8081', 'http://192.168.0.241:8081'];
 
 // In development, also allow requests from native mobile apps (no Origin header)
 const corsOptions = {
@@ -103,6 +103,7 @@ async function startServer() {
 
   app.listen(Number(PORT), '0.0.0.0', () => {
     console.log(`Cayden Bank API running on http://0.0.0.0:${PORT} (${process.env.NODE_ENV || 'development'})`);
+    console.log(`Network: http://192.168.0.241:${PORT}`);
   });
 }
 

@@ -15,6 +15,7 @@
     "db:rollback": "cd server && npx knex migrate:rollback"
   },
   "dependencies": {
+    "@react-native/assets-registry": "^0.74.87",
     "expo-linear-gradient": "^15.0.8",
     "react-native-svg": "^15.15.2"
   }

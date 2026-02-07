@@ -3,14 +3,29 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { getItem, setItem, deleteItem } from '../utils/storage';
 
+// Production API URL (Render deployment)
+const PRODUCTION_API_URL = 'https://cayden-bank-api.onrender.com/api';
+
+// Determine the API base URL based on environment
 function getApiBaseUrl(): string {
   // Use the configured API URL from app.json extra (production builds)
   const configuredUrl = Constants.expoConfig?.extra?.apiUrl;
   if (configuredUrl) return configuredUrl;
 
-  // Development fallbacks per platform
+  // If __DEV__ is false, we're in production
+  if (!__DEV__) return PRODUCTION_API_URL;
+
+  // Development: use Expo debugger host for physical devices (iPhone)
+  const debuggerHost = Constants.expoConfig?.hostUri?.split(':')[0];
+  if (debuggerHost && Platform.OS !== 'web') {
+    return `http://${debuggerHost}:3000/api`;
+  }
+
+  // Android emulator
   if (Platform.OS === 'android') return 'http://10.0.2.2:3000/api';
-  return 'http://localhost:3000/api';
+
+  // Web or fallback: use local network IP
+  return 'http://192.168.0.241:3000/api';
 }
 
 const API_BASE_URL = getApiBaseUrl();
