@@ -19,7 +19,6 @@ function apiCall(path, method, body) {
 }
 
 (async () => {
-  // Login via API
   console.log('Logging in via API...');
   const loginResult = await apiCall('/api/auth/login', 'POST', {
     email: 'cayden@example.com',
@@ -46,46 +45,81 @@ function apiCall(path, method, body) {
   const dir = '/home/user/cayden-bank/screenshots';
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
-  // 1. Login screen (clean)
-  console.log('1. Capturing login screen...');
+  // 1. Clean login screen
+  console.log('1. Login screen...');
   await page.goto(BASE, { waitUntil: 'networkidle', timeout: 15000 });
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(1000);
   await page.screenshot({ path: `${dir}/01-login.png` });
-  console.log('   Done.');
 
-  // 2. Set localStorage tokens BEFORE navigating, using addInitScript
-  //    Then reload so init() picks them up
-  console.log('2. Authenticating...');
+  // 2. Inject tokens and go to the app
   await page.evaluate(({ t, rt }) => {
     localStorage.setItem('cb_access', t);
     localStorage.setItem('cb_refresh', rt);
   }, { t: token, rt: refreshToken });
 
-  // Now reload - the init() will find the tokens in localStorage, call /auth/me, and show home
   await page.goto(BASE, { waitUntil: 'networkidle', timeout: 15000 });
-  await page.waitForTimeout(3000);
+  // Wait for the home screen to actually render (init() calls /auth/me then shows home)
+  await page.waitForTimeout(2000);
+
+  // Wait until the home-screen is visible
+  await page.waitForFunction(() => {
+    const el = document.getElementById('home-screen');
+    return el && el.style.display !== 'none';
+  }, { timeout: 10000 }).catch(() => {});
+  await page.waitForTimeout(1000);
+
+  // Now hide the login/register screens that sit above in the DOM
+  // and only show the active screen
+  await page.evaluate(() => {
+    // Force hide auth screens
+    const login = document.getElementById('login-screen');
+    const register = document.getElementById('register-screen');
+    if (login) login.style.display = 'none';
+    if (register) register.style.display = 'none';
+    // Scroll to top
+    window.scrollTo(0, 0);
+  });
+  await page.waitForTimeout(500);
 
   // 3. Home screen
-  console.log('3. Capturing Home...');
+  console.log('2. Home dashboard...');
   await page.screenshot({ path: `${dir}/02-home.png` });
-  await page.screenshot({ path: `${dir}/02-home-full.png`, fullPage: true });
-  console.log('   Done.');
+  // Scroll down for full transaction list
+  await page.evaluate(() => window.scrollTo(0, 600));
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${dir}/02-home-scrolled.png` });
+  await page.evaluate(() => window.scrollTo(0, 0));
 
-  // Helper to wait for screen transition
+  // Helper
   const captureTab = async (tabName, num, fileName) => {
-    console.log(`${num}. Capturing ${tabName}...`);
-    await page.evaluate((tab) => navigateTab(tab), tabName);
+    console.log(`${num}. ${tabName}...`);
+    await page.evaluate((tab) => {
+      navigateTab(tab);
+      window.scrollTo(0, 0);
+    }, tabName);
     await page.waitForTimeout(2000);
+    // Hide auth screens again
+    await page.evaluate(() => {
+      const login = document.getElementById('login-screen');
+      const register = document.getElementById('register-screen');
+      if (login) login.style.display = 'none';
+      if (register) register.style.display = 'none';
+      window.scrollTo(0, 0);
+    });
+    await page.waitForTimeout(300);
     await page.screenshot({ path: `${dir}/${fileName}.png` });
-    await page.screenshot({ path: `${dir}/${fileName}-full.png`, fullPage: true });
-    console.log('   Done.');
+    // Scroll down for more content
+    await page.evaluate(() => window.scrollTo(0, 400));
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: `${dir}/${fileName}-scroll.png` });
+    await page.evaluate(() => window.scrollTo(0, 0));
   };
 
-  await captureTab('budget', 4, '03-budget');
-  await captureTab('extracash', 5, '04-extracash');
-  await captureTab('goals', 6, '05-goals');
-  await captureTab('more', 7, '06-more');
+  await captureTab('budget', 3, '03-budget');
+  await captureTab('extracash', 4, '04-extracash');
+  await captureTab('goals', 5, '05-goals');
+  await captureTab('more', 6, '06-more');
 
   await browser.close();
-  console.log('\nAll screenshots saved!');
+  console.log('All done!');
 })();
