@@ -18,8 +18,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useAuthStore } from '../../src/stores/authStore';
+import { useAccountStore } from '../../src/stores/accountStore';
 import { useLinkedAccountStore } from '../../src/stores/linkedAccountStore';
 import { usePinStore } from '../../src/stores/pinStore';
+import { useNotificationStore } from '../../src/stores/notificationStore';
+import { useBillStore } from '../../src/stores/billStore';
 import { Card } from '../../src/components/common/Card';
 import { Button } from '../../src/components/common/Button';
 import { Input } from '../../src/components/common/Input';
@@ -28,9 +31,9 @@ import { colors } from '../../src/theme/colors';
 import { typography } from '../../src/theme/typography';
 import { spacing, borderRadius, shadows } from '../../src/theme/spacing';
 import api from '../../src/services/api';
-import { SideHustle, ChatMessage, LinkedAccount } from '../../src/types';
+import { SideHustle, ChatMessage, LinkedAccount, Notification, Bill } from '../../src/types';
 
-type Tab = 'menu' | 'sidehustles' | 'chat' | 'profile' | 'bankaccounts' | 'security';
+type Tab = 'menu' | 'sidehustles' | 'chat' | 'profile' | 'bankaccounts' | 'security' | 'virtualcard' | 'notifications' | 'helpsupport' | 'billpay';
 
 const HUSTLE_CATEGORY_LABELS: Record<string, string> = {
   remote: 'Remote',
@@ -51,6 +54,7 @@ const HUSTLE_ACCENT_COLORS: Record<string, string> = {
 const MENU_ITEM_STYLES: Record<string, { bg: string; icon: string }> = {
   'Side Hustles': { bg: '#E0E7FF', icon: '#6366F1' },
   'Cayden AI Chat': { bg: '#DBEAFE', icon: '#3B82F6' },
+  'Bill Pay': { bg: '#FFF7ED', icon: '#F97316' },
   'Profile & Settings': { bg: '#D1FAE5', icon: '#10B981' },
   'Bank Accounts': { bg: '#FEF3C7', icon: '#F59E0B' },
   'Virtual Card': { bg: '#FEFCE8', icon: '#EAB308' },
@@ -117,6 +121,47 @@ export default function MoreScreen() {
     );
   }
 
+  if (activeTab === 'virtualcard') {
+    return (
+      <VirtualCardScreen
+        theme={theme}
+        isDarkMode={isDarkMode}
+        user={user}
+        onBack={() => setActiveTab('menu')}
+      />
+    );
+  }
+
+  if (activeTab === 'notifications') {
+    return (
+      <NotificationsScreen
+        theme={theme}
+        isDarkMode={isDarkMode}
+        onBack={() => setActiveTab('menu')}
+      />
+    );
+  }
+
+  if (activeTab === 'helpsupport') {
+    return (
+      <HelpSupportScreen
+        theme={theme}
+        isDarkMode={isDarkMode}
+        onBack={() => setActiveTab('menu')}
+      />
+    );
+  }
+
+  if (activeTab === 'billpay') {
+    return (
+      <BillPayScreen
+        theme={theme}
+        isDarkMode={isDarkMode}
+        onBack={() => setActiveTab('menu')}
+      />
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -143,6 +188,14 @@ export default function MoreScreen() {
             onPress={() => setActiveTab('chat')}
           />
           <MenuItem
+            icon="receipt-outline"
+            label="Bill Pay"
+            subtitle="Manage and pay your bills"
+            theme={theme}
+            isDarkMode={isDarkMode}
+            onPress={() => setActiveTab('billpay')}
+          />
+          <MenuItem
             icon="person-outline"
             label="Profile & Settings"
             subtitle="Manage your account"
@@ -164,9 +217,7 @@ export default function MoreScreen() {
             subtitle="View your Cayden debit card"
             theme={theme}
             isDarkMode={isDarkMode}
-            onPress={() =>
-              Alert.alert('Coming Soon', 'Virtual card management is coming soon!')
-            }
+            onPress={() => setActiveTab('virtualcard')}
           />
           <MenuItem
             icon="notifications-outline"
@@ -174,12 +225,7 @@ export default function MoreScreen() {
             subtitle="Manage your alerts"
             theme={theme}
             isDarkMode={isDarkMode}
-            onPress={() =>
-              Alert.alert(
-                'Coming Soon',
-                'Notification settings are coming soon!'
-              )
-            }
+            onPress={() => setActiveTab('notifications')}
           />
           <MenuItem
             icon="shield-checkmark-outline"
@@ -195,9 +241,7 @@ export default function MoreScreen() {
             subtitle="FAQs and contact support"
             theme={theme}
             isDarkMode={isDarkMode}
-            onPress={() =>
-              Alert.alert('Help', 'Contact us at support@caydenbank.com')
-            }
+            onPress={() => setActiveTab('helpsupport')}
           />
         </View>
 
@@ -509,6 +553,12 @@ function ChatScreen({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([
+    'Check my balance',
+    'Show spending',
+    'ExtraCash info',
+    'What can you do?',
+  ]);
   const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
@@ -524,19 +574,21 @@ function ChatScreen({
     }
   };
 
-  const sendMessage = async () => {
-    if (!input.trim()) return;
+  const sendMessage = async (text?: string) => {
+    const messageText = text || input.trim();
+    if (!messageText) return;
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
-      content: input.trim(),
+      content: messageText,
       createdAt: new Date().toISOString(),
     };
 
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
     setSending(true);
+    setSuggestions([]);
 
     try {
       const res = await api.post('/chat', { message: userMsg.content });
@@ -547,6 +599,9 @@ function ChatScreen({
         createdAt: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, assistantMsg]);
+      if (res.data.data.suggestions) {
+        setSuggestions(res.data.data.suggestions);
+      }
     } catch {
       Alert.alert('Error', 'Failed to send message');
     } finally {
@@ -578,11 +633,14 @@ function ChatScreen({
       >
         {messages.length === 0 && (
           <View style={styles.chatEmpty}>
-            <Ionicons
-              name="chatbubble-ellipses-outline"
-              size={64}
-              color={theme.textTertiary}
-            />
+            <LinearGradient
+              colors={[theme.primaryGradientStart, theme.primaryGradientEnd]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md }}
+            >
+              <Ionicons name="chatbubble-ellipses" size={40} color="#FFFFFF" />
+            </LinearGradient>
             <Text style={[styles.chatEmptyTitle, { color: theme.text }]}>
               Welcome to Cayden AI
             </Text>
@@ -592,8 +650,7 @@ function ChatScreen({
                 { color: theme.textSecondary },
               ]}
             >
-              Ask me about your balance, spending, ExtraCash, goals, or
-              anything else!
+              Your personal financial assistant. Ask me about your balance, spending, ExtraCash, goals, bills, or anything else!
             </Text>
           </View>
         )}
@@ -621,6 +678,12 @@ function ChatScreen({
                   },
                 ]}
               >
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                  <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: theme.primary, alignItems: 'center', justifyContent: 'center', marginRight: 6 }}>
+                    <Ionicons name="sparkles" size={12} color="#FFFFFF" />
+                  </View>
+                  <Text style={{ color: theme.primary, fontWeight: '700', fontSize: 12 }}>Cayden AI</Text>
+                </View>
                 <Text style={[styles.chatText, { color: theme.text }]}>
                   {msg.content}
                 </Text>
@@ -639,9 +702,35 @@ function ChatScreen({
               },
             ]}
           >
-            <Text style={[styles.chatText, { color: theme.textTertiary }]}>
-              Thinking...
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.primary, opacity: 0.6 }} />
+              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.primary, opacity: 0.4 }} />
+              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.primary, opacity: 0.2 }} />
+            </View>
+          </View>
+        )}
+
+        {/* Suggestion Chips */}
+        {!sending && suggestions.length > 0 && (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.sm, paddingHorizontal: spacing.xs }}>
+            {suggestions.map((suggestion) => (
+              <TouchableOpacity
+                key={suggestion}
+                onPress={() => sendMessage(suggestion)}
+                style={{
+                  paddingHorizontal: spacing.md,
+                  paddingVertical: spacing.sm,
+                  borderRadius: borderRadius.full,
+                  borderWidth: 1.5,
+                  borderColor: theme.primary,
+                  backgroundColor: isDarkMode ? `${theme.primary}15` : `${theme.primary}08`,
+                }}
+              >
+                <Text style={{ color: theme.primary, fontWeight: '600', fontSize: 13 }}>
+                  {suggestion}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
         )}
       </ScrollView>
@@ -663,15 +752,15 @@ function ChatScreen({
                 color: theme.text,
               },
             ]}
-            placeholder="Type a message..."
+            placeholder="Ask Cayden AI anything..."
             placeholderTextColor={theme.textTertiary}
             value={input}
             onChangeText={setInput}
-            onSubmitEditing={sendMessage}
+            onSubmitEditing={() => sendMessage()}
             returnKeyType="send"
           />
           <TouchableOpacity
-            onPress={sendMessage}
+            onPress={() => sendMessage()}
             disabled={sending || !input.trim()}
             activeOpacity={0.8}
           >
@@ -1699,6 +1788,938 @@ function SecuritySettingsScreen({
             isLast
           />
         </Card>
+
+        <View style={{ height: spacing.xxl }} />
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+// Virtual Card Screen
+function VirtualCardScreen({
+  theme,
+  isDarkMode,
+  user,
+  onBack,
+}: {
+  theme: any;
+  isDarkMode: boolean;
+  user: any;
+  onBack: () => void;
+}) {
+  const { accounts, fetchAccounts } = useAccountStore();
+  const [cardFrozen, setCardFrozen] = useState(false);
+  const [showNumber, setShowNumber] = useState(false);
+
+  useEffect(() => {
+    fetchAccounts();
+  }, []);
+
+  const checking = accounts.find((a) => a.accountType === 'checking');
+
+  // Generate a deterministic card number from accountNumber for display
+  const cardNumber = checking?.accountNumber
+    ? `4826 ${checking.accountNumber.slice(0, 4)} ${checking.accountNumber.slice(4, 8)} ${checking.accountNumber.slice(-4)}`
+    : '4826 **** **** ****';
+  const maskedNumber = '4826 **** **** ' + (checking?.accountNumber?.slice(-4) || '****');
+  const expiryDate = '12/28';
+  const cvv = '***';
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={styles.subHeader}>
+        <TouchableOpacity onPress={onBack}>
+          <Ionicons name="chevron-back" size={28} color={theme.text} />
+        </TouchableOpacity>
+        <Text style={[styles.subTitle, { color: theme.text }]}>Virtual Card</Text>
+        <View style={{ width: 28 }} />
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Card Visual */}
+        <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.lg }}>
+          <LinearGradient
+            colors={cardFrozen ? ['#6B7280', '#9CA3AF'] : [theme.primaryGradientStart, theme.primaryGradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              borderRadius: borderRadius.xxl,
+              padding: spacing.xl,
+              minHeight: 210,
+              justifyContent: 'space-between',
+              ...shadows.lg,
+            }}
+          >
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ color: '#FFFFFF', fontSize: 20, fontWeight: '700', letterSpacing: 1 }}>
+                CAYDEN
+              </Text>
+              {cardFrozen && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+                  <Ionicons name="snow-outline" size={14} color="#FFFFFF" />
+                  <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '600', marginLeft: 4 }}>FROZEN</Text>
+                </View>
+              )}
+            </View>
+
+            <View>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name="wifi" size={24} color="rgba(255,255,255,0.6)" style={{ transform: [{ rotate: '90deg' }] }} />
+              </View>
+              <Text style={{ color: '#FFFFFF', fontSize: 22, fontWeight: '600', letterSpacing: 3, marginTop: spacing.sm }}>
+                {showNumber ? cardNumber : maskedNumber}
+              </Text>
+            </View>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+              <View>
+                <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, fontWeight: '600', letterSpacing: 1 }}>CARD HOLDER</Text>
+                <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '600', marginTop: 2 }}>
+                  {user?.firstName?.toUpperCase()} {user?.lastName?.toUpperCase()}
+                </Text>
+              </View>
+              <View style={{ alignItems: 'center' }}>
+                <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, fontWeight: '600', letterSpacing: 1 }}>EXPIRES</Text>
+                <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '600', marginTop: 2 }}>{expiryDate}</Text>
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, fontWeight: '600', letterSpacing: 1 }}>CVV</Text>
+                <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '600', marginTop: 2 }}>{cvv}</Text>
+              </View>
+            </View>
+          </LinearGradient>
+        </View>
+
+        {/* Card Actions */}
+        <View style={{ flexDirection: 'row', paddingHorizontal: spacing.lg, gap: spacing.sm, marginBottom: spacing.lg }}>
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            activeOpacity={0.8}
+            onPress={() => setShowNumber(!showNumber)}
+          >
+            <Card variant="elevated" style={{ alignItems: 'center', paddingVertical: spacing.md }}>
+              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: isDarkMode ? '#3B82F622' : '#DBEAFE', alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xs }}>
+                <Ionicons name={showNumber ? 'eye-off-outline' : 'eye-outline'} size={22} color="#3B82F6" />
+              </View>
+              <Text style={[styles.hustleMetaText, { color: theme.text, fontWeight: '600' }]}>
+                {showNumber ? 'Hide' : 'Show'}
+              </Text>
+            </Card>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            activeOpacity={0.8}
+            onPress={() => {
+              setCardFrozen(!cardFrozen);
+              Alert.alert(cardFrozen ? 'Card Unfrozen' : 'Card Frozen', cardFrozen ? 'Your card is now active.' : 'Your card has been temporarily frozen.');
+            }}
+          >
+            <Card variant="elevated" style={{ alignItems: 'center', paddingVertical: spacing.md }}>
+              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: isDarkMode ? '#8B5CF622' : '#F3E8FF', alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xs }}>
+                <Ionicons name={cardFrozen ? 'flame-outline' : 'snow-outline'} size={22} color="#8B5CF6" />
+              </View>
+              <Text style={[styles.hustleMetaText, { color: theme.text, fontWeight: '600' }]}>
+                {cardFrozen ? 'Unfreeze' : 'Freeze'}
+              </Text>
+            </Card>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            activeOpacity={0.8}
+            onPress={() => Alert.alert('Copied!', 'Card number copied to clipboard.')}
+          >
+            <Card variant="elevated" style={{ alignItems: 'center', paddingVertical: spacing.md }}>
+              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: isDarkMode ? '#10B98122' : '#D1FAE5', alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xs }}>
+                <Ionicons name="copy-outline" size={22} color="#10B981" />
+              </View>
+              <Text style={[styles.hustleMetaText, { color: theme.text, fontWeight: '600' }]}>Copy</Text>
+            </Card>
+          </TouchableOpacity>
+        </View>
+
+        {/* Card Details */}
+        <Card variant="elevated" style={{ marginHorizontal: spacing.lg, marginBottom: spacing.md, borderRadius: borderRadius.xl }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
+            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDarkMode ? '#EAB30822' : '#FEF3C7', alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="information-circle-outline" size={20} color="#EAB308" />
+            </View>
+            <Text style={[styles.hustleTitle, { color: theme.text }]}>Card Details</Text>
+          </View>
+          <InfoRow label="Card Type" value="Visa Debit" theme={theme} />
+          <InfoRow label="Status" value={cardFrozen ? 'Frozen' : 'Active'} theme={theme} />
+          <InfoRow label="Daily Limit" value="$5,000.00" theme={theme} />
+          <InfoRow label="ATM Limit" value="$500.00" theme={theme} />
+          <InfoRow label="Network" value="Visa" theme={theme} isLast />
+        </Card>
+
+        {/* Spending Controls */}
+        <Card variant="elevated" style={{ marginHorizontal: spacing.lg, marginBottom: spacing.md, borderRadius: borderRadius.xl }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
+            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDarkMode ? '#EC489922' : '#FCE7F3', alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="settings-outline" size={20} color="#EC4899" />
+            </View>
+            <Text style={[styles.hustleTitle, { color: theme.text }]}>Spending Controls</Text>
+          </View>
+          <View style={[styles.toggleRow, { paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: theme.border }]}>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Online Purchases</Text>
+            <Switch value={!cardFrozen} trackColor={{ false: theme.border, true: theme.primary }} thumbColor="#FFFFFF" disabled />
+          </View>
+          <View style={[styles.toggleRow, { paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: theme.border }]}>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>International Transactions</Text>
+            <Switch value={false} trackColor={{ false: theme.border, true: theme.primary }} thumbColor="#FFFFFF" disabled />
+          </View>
+          <View style={[styles.toggleRow, { paddingVertical: spacing.sm }]}>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>ATM Withdrawals</Text>
+            <Switch value={!cardFrozen} trackColor={{ false: theme.border, true: theme.primary }} thumbColor="#FFFFFF" disabled />
+          </View>
+        </Card>
+
+        <View style={{ height: spacing.xxl }} />
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+// Notifications Screen
+function NotificationsScreen({
+  theme,
+  isDarkMode,
+  onBack,
+}: {
+  theme: any;
+  isDarkMode: boolean;
+  onBack: () => void;
+}) {
+  const { notifications, unreadCount, isLoading, fetchNotifications, markAsRead, markAllAsRead } = useNotificationStore();
+  const [pushEnabled, setPushEnabled] = useState(true);
+  const [emailEnabled, setEmailEnabled] = useState(true);
+  const [transactionAlerts, setTransactionAlerts] = useState(true);
+  const [advanceReminders, setAdvanceReminders] = useState(true);
+  const [goalMilestones, setGoalMilestones] = useState(true);
+  const [securityAlerts, setSecurityAlerts] = useState(true);
+  const [marketingEmails, setMarketingEmails] = useState(false);
+  const [weeklyDigest, setWeeklyDigest] = useState(true);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const getNotifIcon = (type: string): { icon: keyof typeof Ionicons.glyphMap; color: string; bg: string } => {
+    switch (type) {
+      case 'transaction':
+        return { icon: 'arrow-down-circle', color: '#10B981', bg: isDarkMode ? '#064E3B' : '#D1FAE5' };
+      case 'advance':
+        return { icon: 'flash', color: '#F59E0B', bg: isDarkMode ? '#78350F' : '#FEF3C7' };
+      case 'security':
+        return { icon: 'shield-checkmark', color: '#8B5CF6', bg: isDarkMode ? '#8B5CF622' : '#F3E8FF' };
+      case 'goal':
+        return { icon: 'flag', color: '#3B82F6', bg: isDarkMode ? '#3B82F622' : '#DBEAFE' };
+      case 'bill':
+        return { icon: 'receipt', color: '#F97316', bg: isDarkMode ? '#F9731622' : '#FFF7ED' };
+      default:
+        return { icon: 'notifications', color: '#EC4899', bg: isDarkMode ? '#EC489922' : '#FCE7F3' };
+    }
+  };
+
+  const getTimeAgo = (dateStr: string) => {
+    const now = new Date();
+    const date = new Date(dateStr);
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={styles.subHeader}>
+        <TouchableOpacity onPress={onBack}>
+          <Ionicons name="chevron-back" size={28} color={theme.text} />
+        </TouchableOpacity>
+        <Text style={[styles.subTitle, { color: theme.text }]}>Notifications</Text>
+        {unreadCount > 0 ? (
+          <TouchableOpacity onPress={markAllAsRead}>
+            <Text style={{ color: theme.primary, fontWeight: '600', fontSize: 14 }}>Read All</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 28 }} />
+        )}
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Unread Badge */}
+        {unreadCount > 0 && (
+          <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.sm }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+              <View style={{ backgroundColor: theme.primary, paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: borderRadius.full }}>
+                <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 12 }}>{unreadCount} NEW</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Notifications List */}
+        {notifications.length === 0 && !isLoading && (
+          <View style={{ alignItems: 'center', paddingTop: 60 }}>
+            <Ionicons name="notifications-off-outline" size={64} color={theme.textTertiary} />
+            <Text style={[styles.chatEmptyTitle, { color: theme.text, marginTop: spacing.md }]}>No Notifications</Text>
+            <Text style={[styles.chatEmptySubtitle, { color: theme.textSecondary }]}>
+              You're all caught up! Notifications will appear here.
+            </Text>
+          </View>
+        )}
+
+        {notifications.map((notif: Notification) => {
+          const { icon, color, bg } = getNotifIcon(notif.type);
+          return (
+            <TouchableOpacity
+              key={notif.id}
+              activeOpacity={0.8}
+              onPress={() => { if (!notif.read) markAsRead(notif.id); }}
+            >
+              <Card
+                variant="elevated"
+                style={{
+                  marginHorizontal: spacing.lg,
+                  marginBottom: spacing.sm,
+                  borderRadius: borderRadius.xl,
+                  borderLeftWidth: notif.read ? 0 : 3,
+                  borderLeftColor: theme.primary,
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md }}>
+                  <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
+                    <Ionicons name={icon} size={22} color={color} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text style={[styles.hustleTitle, { color: theme.text, flex: 1 }]}>{notif.title}</Text>
+                      {!notif.read && (
+                        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.primary }} />
+                      )}
+                    </View>
+                    <Text style={[styles.hustleDescription, { color: theme.textSecondary, marginTop: 2 }]}>{notif.message}</Text>
+                    <Text style={[styles.hustleMetaText, { color: theme.textTertiary, marginTop: 4 }]}>{getTimeAgo(notif.createdAt)}</Text>
+                  </View>
+                </View>
+              </Card>
+            </TouchableOpacity>
+          );
+        })}
+
+        {/* Notification Preferences */}
+        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.lg, marginBottom: spacing.sm }}>
+          <Text style={[styles.hustleTitle, { color: theme.text, marginBottom: spacing.sm }]}>Preferences</Text>
+        </View>
+
+        <Card variant="elevated" style={{ marginHorizontal: spacing.lg, marginBottom: spacing.md, borderRadius: borderRadius.xl }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
+            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDarkMode ? '#3B82F622' : '#DBEAFE', alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="phone-portrait-outline" size={20} color="#3B82F6" />
+            </View>
+            <Text style={[styles.hustleTitle, { color: theme.text }]}>Push Notifications</Text>
+          </View>
+
+          <View style={[styles.toggleRow, { paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: theme.border }]}>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Push Notifications</Text>
+            <Switch value={pushEnabled} onValueChange={setPushEnabled} trackColor={{ false: theme.border, true: theme.primary }} thumbColor="#FFFFFF" />
+          </View>
+          <View style={[styles.toggleRow, { paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: theme.border }]}>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Transaction Alerts</Text>
+            <Switch value={transactionAlerts} onValueChange={setTransactionAlerts} trackColor={{ false: theme.border, true: theme.primary }} thumbColor="#FFFFFF" />
+          </View>
+          <View style={[styles.toggleRow, { paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: theme.border }]}>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Advance Reminders</Text>
+            <Switch value={advanceReminders} onValueChange={setAdvanceReminders} trackColor={{ false: theme.border, true: theme.primary }} thumbColor="#FFFFFF" />
+          </View>
+          <View style={[styles.toggleRow, { paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: theme.border }]}>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Goal Milestones</Text>
+            <Switch value={goalMilestones} onValueChange={setGoalMilestones} trackColor={{ false: theme.border, true: theme.primary }} thumbColor="#FFFFFF" />
+          </View>
+          <View style={[styles.toggleRow, { paddingVertical: spacing.sm }]}>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Security Alerts</Text>
+            <Switch value={securityAlerts} onValueChange={setSecurityAlerts} trackColor={{ false: theme.border, true: theme.primary }} thumbColor="#FFFFFF" />
+          </View>
+        </Card>
+
+        <Card variant="elevated" style={{ marginHorizontal: spacing.lg, marginBottom: spacing.md, borderRadius: borderRadius.xl }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
+            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDarkMode ? '#EC489922' : '#FCE7F3', alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="mail-outline" size={20} color="#EC4899" />
+            </View>
+            <Text style={[styles.hustleTitle, { color: theme.text }]}>Email Notifications</Text>
+          </View>
+
+          <View style={[styles.toggleRow, { paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: theme.border }]}>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Email Notifications</Text>
+            <Switch value={emailEnabled} onValueChange={setEmailEnabled} trackColor={{ false: theme.border, true: theme.primary }} thumbColor="#FFFFFF" />
+          </View>
+          <View style={[styles.toggleRow, { paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: theme.border }]}>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Weekly Digest</Text>
+            <Switch value={weeklyDigest} onValueChange={setWeeklyDigest} trackColor={{ false: theme.border, true: theme.primary }} thumbColor="#FFFFFF" />
+          </View>
+          <View style={[styles.toggleRow, { paddingVertical: spacing.sm }]}>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Marketing Emails</Text>
+            <Switch value={marketingEmails} onValueChange={setMarketingEmails} trackColor={{ false: theme.border, true: theme.primary }} thumbColor="#FFFFFF" />
+          </View>
+        </Card>
+
+        <View style={{ height: spacing.xxl }} />
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+// Help & Support Screen
+function HelpSupportScreen({
+  theme,
+  isDarkMode,
+  onBack,
+}: {
+  theme: any;
+  isDarkMode: boolean;
+  onBack: () => void;
+}) {
+  const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
+
+  const faqs = [
+    {
+      id: '1',
+      question: 'How do I get an ExtraCash advance?',
+      answer: 'To get an ExtraCash advance, first link and verify a bank account. Then go to the ExtraCash tab, where you\'ll see your eligibility score. If eligible, select your amount and delivery speed, then tap "Get ExtraCash". Standard delivery is free, while Express has a 5% fee.',
+    },
+    {
+      id: '2',
+      question: 'How do I link a bank account?',
+      answer: 'Go to More > Bank Accounts and tap "Add Bank Account". Enter your bank name, account holder name, last 4 digits of your account number, and routing number. After linking, you\'ll need to verify the account through micro-deposits.',
+    },
+    {
+      id: '3',
+      question: 'What is the eligibility score?',
+      answer: 'Your eligibility score (0-100) determines how much ExtraCash you can access. It\'s based on 5 factors: income consistency, average balance, spending patterns, account age, and repayment history. A higher score means more ExtraCash availability.',
+    },
+    {
+      id: '4',
+      question: 'How do I set up a PIN?',
+      answer: 'Go to More > Security and tap "Set PIN". Choose a 4-digit PIN that you\'ll remember. Your PIN is required for ExtraCash advances over $100 and adds an extra layer of security when you reopen the app.',
+    },
+    {
+      id: '5',
+      question: 'How do transfers work?',
+      answer: 'You can transfer money between your Cayden checking and savings accounts instantly. From the Home screen, tap "Transfer", select the source and destination accounts, enter the amount, and confirm. Transfers are processed immediately.',
+    },
+    {
+      id: '6',
+      question: 'What are Savings Goals?',
+      answer: 'Savings Goals help you save for specific targets. Go to the Goals tab to create a goal with a name and target amount. You can add funds anytime and track your progress with visual progress bars.',
+    },
+    {
+      id: '7',
+      question: 'How do I freeze my virtual card?',
+      answer: 'Go to More > Virtual Card and tap the "Freeze" button. This temporarily disables all card transactions. You can unfreeze it anytime by tapping "Unfreeze".',
+    },
+  ];
+
+  const contactOptions = [
+    {
+      icon: 'mail-outline' as const,
+      label: 'Email Support',
+      value: 'support@caydenbank.com',
+      color: '#3B82F6',
+      bg: isDarkMode ? '#3B82F622' : '#DBEAFE',
+      onPress: () => Linking.openURL('mailto:support@caydenbank.com'),
+    },
+    {
+      icon: 'call-outline' as const,
+      label: 'Phone Support',
+      value: '1-800-CAYDEN',
+      color: '#10B981',
+      bg: isDarkMode ? '#064E3B' : '#D1FAE5',
+      onPress: () => Linking.openURL('tel:18002293367'),
+    },
+    {
+      icon: 'chatbubble-outline' as const,
+      label: 'Live Chat',
+      value: 'Available 24/7',
+      color: '#8B5CF6',
+      bg: isDarkMode ? '#8B5CF622' : '#F3E8FF',
+      onPress: () => Alert.alert('Live Chat', 'Connecting to a support agent...'),
+    },
+  ];
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={styles.subHeader}>
+        <TouchableOpacity onPress={onBack}>
+          <Ionicons name="chevron-back" size={28} color={theme.text} />
+        </TouchableOpacity>
+        <Text style={[styles.subTitle, { color: theme.text }]}>Help & Support</Text>
+        <View style={{ width: 28 }} />
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Contact Options */}
+        <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.lg }}>
+          <Text style={[styles.hustleTitle, { color: theme.text, marginBottom: spacing.md }]}>Contact Us</Text>
+          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+            {contactOptions.map((opt) => (
+              <TouchableOpacity
+                key={opt.label}
+                style={{ flex: 1 }}
+                activeOpacity={0.8}
+                onPress={opt.onPress}
+              >
+                <Card variant="elevated" style={{ alignItems: 'center', paddingVertical: spacing.md, borderRadius: borderRadius.xl }}>
+                  <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: opt.bg, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xs }}>
+                    <Ionicons name={opt.icon} size={24} color={opt.color} />
+                  </View>
+                  <Text style={{ color: theme.text, fontWeight: '600', fontSize: 13, textAlign: 'center' }}>{opt.label}</Text>
+                  <Text style={{ color: theme.textTertiary, fontSize: 11, marginTop: 2, textAlign: 'center' }}>{opt.value}</Text>
+                </Card>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* FAQ Section */}
+        <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.sm }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
+            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDarkMode ? '#F59E0B22' : '#FEF3C7', alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="help-circle-outline" size={20} color="#F59E0B" />
+            </View>
+            <Text style={[styles.hustleTitle, { color: theme.text }]}>Frequently Asked Questions</Text>
+          </View>
+        </View>
+
+        {faqs.map((faq) => (
+          <TouchableOpacity
+            key={faq.id}
+            activeOpacity={0.8}
+            onPress={() => setExpandedFaq(expandedFaq === faq.id ? null : faq.id)}
+          >
+            <Card
+              variant="elevated"
+              style={{
+                marginHorizontal: spacing.lg,
+                marginBottom: spacing.sm,
+                borderRadius: borderRadius.xl,
+                borderLeftWidth: expandedFaq === faq.id ? 4 : 0,
+                borderLeftColor: theme.primary,
+              }}
+            >
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={[styles.hustleTitle, { color: theme.text, flex: 1, marginRight: spacing.sm }]}>
+                  {faq.question}
+                </Text>
+                <Ionicons
+                  name={expandedFaq === faq.id ? 'chevron-up' : 'chevron-down'}
+                  size={20}
+                  color={theme.textTertiary}
+                />
+              </View>
+              {expandedFaq === faq.id && (
+                <Text style={[styles.hustleDescription, { color: theme.textSecondary, marginTop: spacing.sm, lineHeight: 20 }]}>
+                  {faq.answer}
+                </Text>
+              )}
+            </Card>
+          </TouchableOpacity>
+        ))}
+
+        {/* App Info */}
+        <Card variant="elevated" style={{ marginHorizontal: spacing.lg, marginTop: spacing.lg, marginBottom: spacing.md, borderRadius: borderRadius.xl }}>
+          <View style={{ alignItems: 'center', paddingVertical: spacing.md }}>
+            <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: isDarkMode ? `${theme.primary}22` : '#D1FAE5', alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm }}>
+              <Ionicons name="information-circle-outline" size={30} color={theme.primary} />
+            </View>
+            <Text style={[styles.hustleTitle, { color: theme.text }]}>Cayden Bank</Text>
+            <Text style={[styles.hustleMetaText, { color: theme.textSecondary, marginTop: 4 }]}>Version 1.0.0</Text>
+            <Text style={[styles.hustleMetaText, { color: theme.textTertiary, marginTop: 2 }]}>Your money, your way</Text>
+          </View>
+        </Card>
+
+        <View style={{ height: spacing.xxl }} />
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+// Bill Pay Screen
+function BillPayScreen({
+  theme,
+  isDarkMode,
+  onBack,
+}: {
+  theme: any;
+  isDarkMode: boolean;
+  onBack: () => void;
+}) {
+  const { bills, isLoading, fetchBills, createBill, payBill, deleteBill } = useBillStore();
+  const { accounts, fetchAccounts } = useAccountStore();
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [billName, setBillName] = useState('');
+  const [billAmount, setBillAmount] = useState('');
+  const [billCategory, setBillCategory] = useState<string>('subscription');
+  const [billDueDay, setBillDueDay] = useState('');
+  const [billAutoPay, setBillAutoPay] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    fetchBills();
+    fetchAccounts();
+  }, []);
+
+  const checking = accounts.find((a) => a.accountType === 'checking');
+
+  const BILL_CATEGORIES = [
+    { key: 'subscription', label: 'Subscription', icon: 'tv-outline' as const, color: '#8B5CF6' },
+    { key: 'utility', label: 'Utility', icon: 'flash-outline' as const, color: '#F59E0B' },
+    { key: 'rent', label: 'Rent', icon: 'home-outline' as const, color: '#3B82F6' },
+    { key: 'insurance', label: 'Insurance', icon: 'shield-outline' as const, color: '#10B981' },
+    { key: 'loan', label: 'Loan', icon: 'cash-outline' as const, color: '#EF4444' },
+    { key: 'other', label: 'Other', icon: 'receipt-outline' as const, color: '#6B7280' },
+  ];
+
+  const getCatInfo = (cat: string) => BILL_CATEGORIES.find((c) => c.key === cat) || BILL_CATEGORIES[5];
+
+  const resetForm = () => {
+    setBillName('');
+    setBillAmount('');
+    setBillCategory('subscription');
+    setBillDueDay('');
+    setBillAutoPay(false);
+    setShowAddForm(false);
+  };
+
+  const handleAddBill = async () => {
+    if (!billName.trim() || !billAmount.trim() || !billDueDay.trim()) {
+      Alert.alert('Missing Fields', 'Please fill in bill name, amount, and due day.');
+      return;
+    }
+    const amount = parseFloat(billAmount);
+    const dueDay = parseInt(billDueDay, 10);
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert('Invalid Amount', 'Please enter a valid amount.');
+      return;
+    }
+    if (isNaN(dueDay) || dueDay < 1 || dueDay > 31) {
+      Alert.alert('Invalid Due Day', 'Due day must be between 1 and 31.');
+      return;
+    }
+    if (!checking) {
+      Alert.alert('No Account', 'Please set up a checking account first.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await createBill({
+        accountId: checking.id,
+        name: billName.trim(),
+        category: billCategory,
+        amount,
+        frequency: 'monthly',
+        dueDay,
+        autoPay: billAutoPay,
+      });
+      resetForm();
+      Alert.alert('Success', 'Bill added successfully!');
+    } catch {
+      Alert.alert('Error', 'Failed to add bill.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handlePayBill = (bill: Bill) => {
+    Alert.alert(
+      'Pay Bill',
+      `Pay $${bill.amount.toFixed(2)} for ${bill.name}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Pay Now',
+          onPress: async () => {
+            try {
+              await payBill(bill.id);
+              Alert.alert('Success', `${bill.name} payment of $${bill.amount.toFixed(2)} processed!`);
+              fetchAccounts();
+            } catch (err: any) {
+              Alert.alert('Error', err?.response?.data?.message || 'Payment failed.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteBill = (bill: Bill) => {
+    Alert.alert('Delete Bill', `Remove ${bill.name} from your bills?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteBill(bill.id);
+          } catch {
+            Alert.alert('Error', 'Failed to delete bill.');
+          }
+        },
+      },
+    ]);
+  };
+
+  const activeBills = bills.filter((b) => b.status === 'active');
+  const totalMonthly = activeBills.reduce((sum, b) => sum + b.amount, 0);
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={styles.subHeader}>
+        <TouchableOpacity onPress={onBack}>
+          <Ionicons name="chevron-back" size={28} color={theme.text} />
+        </TouchableOpacity>
+        <Text style={[styles.subTitle, { color: theme.text }]}>Bill Pay</Text>
+        <View style={{ width: 28 }} />
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Summary Card */}
+        {activeBills.length > 0 && (
+          <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
+            <LinearGradient
+              colors={[theme.primaryGradientStart, theme.primaryGradientEnd]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ borderRadius: borderRadius.xxl, padding: spacing.xl, ...shadows.lg }}
+            >
+              <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: '600', letterSpacing: 0.5 }}>MONTHLY BILLS</Text>
+              <Text style={{ color: '#FFFFFF', fontSize: 36, fontWeight: '800', marginTop: spacing.xs }}>
+                ${totalMonthly.toFixed(2)}
+              </Text>
+              <View style={{ flexDirection: 'row', marginTop: spacing.md, gap: spacing.xl }}>
+                <View>
+                  <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11 }}>Active Bills</Text>
+                  <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '700' }}>{activeBills.length}</Text>
+                </View>
+                <View>
+                  <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11 }}>Auto-Pay</Text>
+                  <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '700' }}>{activeBills.filter((b) => b.autoPay).length}</Text>
+                </View>
+              </View>
+            </LinearGradient>
+          </View>
+        )}
+
+        {/* Add Bill Button */}
+        {!showAddForm && (
+          <View style={{ paddingHorizontal: spacing.lg, marginBottom: spacing.md }}>
+            <TouchableOpacity activeOpacity={0.8} onPress={() => setShowAddForm(true)}>
+              <LinearGradient
+                colors={[theme.primaryGradientStart, theme.primaryGradientEnd]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.md, borderRadius: borderRadius.full, gap: spacing.sm }}
+              >
+                <Ionicons name="add-circle-outline" size={22} color="#FFFFFF" />
+                <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 16 }}>Add Bill</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Add Bill Form */}
+        {showAddForm && (
+          <Card variant="elevated" style={{ marginHorizontal: spacing.lg, marginBottom: spacing.md, borderRadius: borderRadius.xl, borderLeftWidth: 4, borderLeftColor: theme.primary }}>
+            <Text style={[styles.hustleTitle, { color: theme.text, marginBottom: spacing.md }]}>New Bill</Text>
+
+            <View style={{ marginBottom: spacing.sm }}>
+              <Text style={[styles.infoLabel, { color: theme.textSecondary, marginBottom: 4 }]}>Bill Name</Text>
+              <TextInput
+                style={{ backgroundColor: theme.surfaceSecondary, color: theme.text, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: borderRadius.lg, fontSize: 16 }}
+                placeholder="e.g. Netflix, Electric"
+                placeholderTextColor={theme.textTertiary}
+                value={billName}
+                onChangeText={setBillName}
+              />
+            </View>
+
+            <View style={{ marginBottom: spacing.sm }}>
+              <Text style={[styles.infoLabel, { color: theme.textSecondary, marginBottom: 4 }]}>Amount</Text>
+              <TextInput
+                style={{ backgroundColor: theme.surfaceSecondary, color: theme.text, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: borderRadius.lg, fontSize: 16 }}
+                placeholder="$0.00"
+                placeholderTextColor={theme.textTertiary}
+                value={billAmount}
+                onChangeText={setBillAmount}
+                keyboardType="decimal-pad"
+              />
+            </View>
+
+            <View style={{ marginBottom: spacing.sm }}>
+              <Text style={[styles.infoLabel, { color: theme.textSecondary, marginBottom: 4 }]}>Category</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={{ flexDirection: 'row', gap: spacing.xs }}>
+                  {BILL_CATEGORIES.map((cat) => (
+                    <TouchableOpacity
+                      key={cat.key}
+                      onPress={() => setBillCategory(cat.key)}
+                      style={{
+                        paddingHorizontal: spacing.md,
+                        paddingVertical: spacing.sm,
+                        borderRadius: borderRadius.full,
+                        borderWidth: 2,
+                        borderColor: billCategory === cat.key ? cat.color : theme.border,
+                        backgroundColor: billCategory === cat.key ? `${cat.color}15` : theme.surfaceSecondary,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 4,
+                      }}
+                    >
+                      <Ionicons name={cat.icon} size={14} color={billCategory === cat.key ? cat.color : theme.textSecondary} />
+                      <Text style={{ color: billCategory === cat.key ? cat.color : theme.textSecondary, fontWeight: '600', fontSize: 12 }}>
+                        {cat.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+
+            <View style={{ marginBottom: spacing.sm }}>
+              <Text style={[styles.infoLabel, { color: theme.textSecondary, marginBottom: 4 }]}>Due Day (1-31)</Text>
+              <TextInput
+                style={{ backgroundColor: theme.surfaceSecondary, color: theme.text, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: borderRadius.lg, fontSize: 16 }}
+                placeholder="15"
+                placeholderTextColor={theme.textTertiary}
+                value={billDueDay}
+                onChangeText={setBillDueDay}
+                keyboardType="number-pad"
+                maxLength={2}
+              />
+            </View>
+
+            <View style={[styles.toggleRow, { marginBottom: spacing.md }]}>
+              <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Auto-Pay</Text>
+              <Switch value={billAutoPay} onValueChange={setBillAutoPay} trackColor={{ false: theme.border, true: theme.primary }} thumbColor="#FFFFFF" />
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+              <TouchableOpacity style={{ flex: 1, paddingVertical: spacing.sm, borderRadius: borderRadius.full, borderWidth: 2, borderColor: theme.border, alignItems: 'center' }} onPress={resetForm}>
+                <Text style={{ color: theme.textSecondary, fontWeight: '600', fontSize: 15 }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={{ flex: 1 }} onPress={handleAddBill} disabled={submitting} activeOpacity={0.8}>
+                <LinearGradient
+                  colors={[theme.primaryGradientStart, theme.primaryGradientEnd]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={{ paddingVertical: spacing.sm, borderRadius: borderRadius.full, alignItems: 'center', opacity: submitting ? 0.6 : 1 }}
+                >
+                  <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 15 }}>
+                    {submitting ? 'Adding...' : 'Add Bill'}
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </Card>
+        )}
+
+        {/* Empty State */}
+        {!isLoading && activeBills.length === 0 && !showAddForm && (
+          <View style={{ alignItems: 'center', paddingTop: 60 }}>
+            <Ionicons name="receipt-outline" size={64} color={theme.textTertiary} />
+            <Text style={[styles.chatEmptyTitle, { color: theme.text, marginTop: spacing.md }]}>No Bills Yet</Text>
+            <Text style={[styles.chatEmptySubtitle, { color: theme.textSecondary }]}>
+              Add your bills to track payments and never miss a due date.
+            </Text>
+          </View>
+        )}
+
+        {/* Bills List */}
+        {activeBills.map((bill) => {
+          const catInfo = getCatInfo(bill.category);
+          const daysUntilDue = bill.nextDueDate
+            ? Math.ceil((new Date(bill.nextDueDate).getTime() - Date.now()) / 86400000)
+            : null;
+          const isOverdue = daysUntilDue !== null && daysUntilDue < 0;
+          const isDueSoon = daysUntilDue !== null && daysUntilDue <= 3 && daysUntilDue >= 0;
+
+          return (
+            <Card
+              key={bill.id}
+              variant="elevated"
+              style={{
+                marginHorizontal: spacing.lg,
+                marginBottom: spacing.sm,
+                borderRadius: borderRadius.xl,
+                borderLeftWidth: 4,
+                borderLeftColor: isOverdue ? '#EF4444' : isDueSoon ? '#F59E0B' : catInfo.color,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md }}>
+                <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: isDarkMode ? `${catInfo.color}22` : `${catInfo.color}15`, alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name={catInfo.icon} size={22} color={catInfo.color} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={[styles.hustleTitle, { color: theme.text }]}>{bill.name}</Text>
+                    <Text style={{ color: theme.text, fontWeight: '700', fontSize: 16 }}>${bill.amount.toFixed(2)}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: spacing.sm }}>
+                    <View style={{ paddingHorizontal: spacing.sm, paddingVertical: 1, borderRadius: borderRadius.sm, backgroundColor: isDarkMode ? `${catInfo.color}22` : `${catInfo.color}15` }}>
+                      <Text style={{ color: catInfo.color, fontSize: 11, fontWeight: '600' }}>
+                        {catInfo.label.toUpperCase()}
+                      </Text>
+                    </View>
+                    {bill.autoPay && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                        <Ionicons name="refresh-circle" size={14} color={theme.primary} />
+                        <Text style={{ color: theme.primary, fontSize: 11, fontWeight: '600' }}>AUTO</Text>
+                      </View>
+                    )}
+                  </View>
+                  {bill.nextDueDate && (
+                    <Text style={[styles.hustleMetaText, {
+                      color: isOverdue ? '#EF4444' : isDueSoon ? '#F59E0B' : theme.textTertiary,
+                      marginTop: 4,
+                      fontWeight: isOverdue || isDueSoon ? '600' : '500',
+                    }]}>
+                      {isOverdue
+                        ? `Overdue by ${Math.abs(daysUntilDue!)} day${Math.abs(daysUntilDue!) > 1 ? 's' : ''}`
+                        : isDueSoon
+                        ? daysUntilDue === 0 ? 'Due today' : `Due in ${daysUntilDue} day${daysUntilDue! > 1 ? 's' : ''}`
+                        : `Due ${new Date(bill.nextDueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                      }
+                    </Text>
+                  )}
+                </View>
+              </View>
+
+              <View style={{ flexDirection: 'row', marginTop: spacing.md, gap: spacing.sm }}>
+                <TouchableOpacity
+                  style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xs, borderRadius: borderRadius.full, backgroundColor: isDarkMode ? '#064E3B' : '#D1FAE5', gap: 4 }}
+                  onPress={() => handlePayBill(bill)}
+                >
+                  <Ionicons name="checkmark-circle-outline" size={16} color="#10B981" />
+                  <Text style={{ color: '#10B981', fontWeight: '600', fontSize: 13 }}>Pay Now</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xs, borderRadius: borderRadius.full, backgroundColor: isDarkMode ? '#7F1D1D' : '#FEE2E2', gap: 4 }}
+                  onPress={() => handleDeleteBill(bill)}
+                >
+                  <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                  <Text style={{ color: '#EF4444', fontWeight: '600', fontSize: 13 }}>Remove</Text>
+                </TouchableOpacity>
+              </View>
+            </Card>
+          );
+        })}
 
         <View style={{ height: spacing.xxl }} />
       </ScrollView>

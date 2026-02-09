@@ -15,6 +15,9 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, 'node_modules'),
 ];
 
+// Disable package exports resolution which can cause issues with hoisted modules
+config.resolver.unstable_enablePackageExports = false;
+
 // Follow symlinks (mobile/node_modules -> root/node_modules)
 config.resolver.unstable_enableSymlinks = true;
 

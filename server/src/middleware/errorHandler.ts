@@ -28,6 +28,15 @@ export function errorHandler(
     return;
   }
 
+  // Handle body-parser / JSON parse errors
+  if ('status' in err && (err as any).status === 400 && (err as any).type === 'entity.parse.failed') {
+    res.status(400).json({
+      status: 'error',
+      message: 'Invalid JSON in request body',
+    });
+    return;
+  }
+
   console.error('Unhandled error:', err);
   res.status(500).json({
     status: 'error',

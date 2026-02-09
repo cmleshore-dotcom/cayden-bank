@@ -91,10 +91,13 @@
     /* ============ AUTH SCREENS ============ */
     .auth-screen {
       min-height: 100vh;
-      display: flex;
       flex-direction: column;
       background: linear-gradient(135deg, #00A86B 0%, #004D32 60%, #002A1A 100%);
       padding: 40px 24px;
+    }
+
+    .auth-screen.active {
+      display: flex;
     }
 
     .auth-screen .auth-logo {

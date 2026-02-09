@@ -112,7 +112,44 @@ export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  suggestions?: string[];
   createdAt: string;
+}
+
+export interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  read: boolean;
+  actionType: string | null;
+  actionTarget: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+export interface Bill {
+  id: string;
+  accountId: string;
+  name: string;
+  category: 'subscription' | 'utility' | 'rent' | 'insurance' | 'loan' | 'other';
+  amount: number;
+  frequency: 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly';
+  dueDay: number;
+  autoPay: boolean;
+  status: 'active' | 'paused' | 'cancelled';
+  icon: string;
+  nextDueDate: string | null;
+  lastPaidDate: string | null;
+  createdAt: string;
+}
+
+export interface BillSummary {
+  totalBills: number;
+  totalMonthlyEstimate: number;
+  upcomingThisMonth: number;
+  upcomingTotal: number;
+  autoPayCount: number;
 }
 
 export interface SpendingCategory {

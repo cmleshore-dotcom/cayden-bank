@@ -20,6 +20,8 @@ import sideHustleRoutes from './routes/sidehustle.routes';
 import chatRoutes from './routes/chat.routes';
 import linkedAccountRoutes from './routes/linkedAccount.routes';
 import pinRoutes from './routes/pin.routes';
+import notificationRoutes from './routes/notification.routes';
+import billRoutes from './routes/bill.routes';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -27,7 +29,7 @@ const PORT = process.env.PORT || 3000;
 // CORS configuration
 const allowedOrigins = process.env.NODE_ENV === 'production'
   ? (process.env.CORS_ORIGINS || '').split(',').filter(Boolean)
-  : ['http://localhost:8081', 'http://localhost:19006', 'http://127.0.0.1:8081', 'http://10.0.2.2:8081', 'http://192.168.0.241:8081'];
+  : ['http://localhost:3000', 'http://localhost:8081', 'http://localhost:19006', 'http://127.0.0.1:3000', 'http://127.0.0.1:8081', 'http://10.0.2.2:8081', 'http://192.168.0.241:8081'];
 
 // In development, also allow requests from native mobile apps (no Origin header)
 const corsOptions = {
@@ -77,6 +79,8 @@ app.use('/api/sidehustles', sideHustleRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/linked-accounts', linkedAccountRoutes);
 app.use('/api/pin', pinRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/bills', billRoutes);
 
 // Error handler (must be last)
 app.use(errorHandler);

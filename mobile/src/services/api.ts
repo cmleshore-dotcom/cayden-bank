@@ -8,24 +8,26 @@ const PRODUCTION_API_URL = 'https://cayden-bank-api.onrender.com/api';
 
 // Determine the API base URL based on environment
 function getApiBaseUrl(): string {
-  // Use the configured API URL from app.json extra (production builds)
+  // In development, always use local server
+  if (__DEV__) {
+    // Physical devices (iPhone): use Expo debugger host
+    const debuggerHost = Constants.expoConfig?.hostUri?.split(':')[0];
+    if (debuggerHost && Platform.OS !== 'web') {
+      return `http://${debuggerHost}:3000/api`;
+    }
+
+    // Android emulator
+    if (Platform.OS === 'android') return 'http://10.0.2.2:3000/api';
+
+    // Web or fallback: use localhost
+    return 'http://localhost:3000/api';
+  }
+
+  // Production: use configured URL from app.json extra, or fallback
   const configuredUrl = Constants.expoConfig?.extra?.apiUrl;
   if (configuredUrl) return configuredUrl;
 
-  // If __DEV__ is false, we're in production
-  if (!__DEV__) return PRODUCTION_API_URL;
-
-  // Development: use Expo debugger host for physical devices (iPhone)
-  const debuggerHost = Constants.expoConfig?.hostUri?.split(':')[0];
-  if (debuggerHost && Platform.OS !== 'web') {
-    return `http://${debuggerHost}:3000/api`;
-  }
-
-  // Android emulator
-  if (Platform.OS === 'android') return 'http://10.0.2.2:3000/api';
-
-  // Web or fallback: use local network IP
-  return 'http://192.168.0.241:3000/api';
+  return PRODUCTION_API_URL;
 }
 
 const API_BASE_URL = getApiBaseUrl();
