@@ -91,6 +91,7 @@ async function startServer() {
     console.log('Running database migrations...');
     await db.migrate.latest({
       directory: path.join(__dirname, 'db', 'migrations'),
+      loadExtensions: ['.js'],
     });
     console.log('Migrations complete.');
 
@@ -100,6 +101,7 @@ async function startServer() {
       console.log('No users found, running seeds...');
       await db.seed.run({
         directory: path.join(__dirname, 'db', 'seeds'),
+        loadExtensions: ['.js'],
       });
       console.log('Seeds complete.');
     }
