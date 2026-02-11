@@ -9,24 +9,40 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1a1a2e"
+      "backgroundColor": "#004D32"
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.caydenbank.app",
+      "buildNumber": "1",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
       "infoPlist": {
         "NSAppTransportSecurity": {
-          "NSAllowsArbitraryLoads": false
-        }
+          "NSAllowsArbitraryLoads": false,
+          "NSExceptionDomains": {
+            "localhost": {
+              "NSExceptionAllowsInsecureHTTPLoads": true,
+              "NSIncludesSubdomains": true
+            }
+          }
+        },
+        "NSFaceIDUsageDescription": "Cayden Bank uses Face ID for secure, quick access to your account.",
+        "NSCameraUsageDescription": "Cayden Bank needs camera access to deposit checks via mobile deposit.",
+        "NSPhotoLibraryUsageDescription": "Cayden Bank needs photo access to upload check images for mobile deposit.",
+        "CFBundleAllowMixedLocalizations": true,
+        "UIBackgroundModes": ["fetch", "remote-notification"]
       }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
-        "backgroundColor": "#1a1a2e"
+        "backgroundColor": "#004D32"
       },
-      "package": "com.caydenbank.app"
+      "package": "com.caydenbank.app",
+      "versionCode": 1
     },
     "web": {
       "bundler": "metro",
@@ -34,12 +50,21 @@
       "favicon": "./assets/icon.png"
     },
     "scheme": "caydenbank",
-    "plugins": ["expo-router", "expo-secure-store"],
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
     "extra": {
       "apiUrl": "https://cayden-bank-api.onrender.com/api",
       "eas": {
         "projectId": "cayden-bank"
       }
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "runtimeVersion": {
+      "policy": "sdkVersion"
     }
   }
 }
