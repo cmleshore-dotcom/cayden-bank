@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useAccountStore } from '../../src/stores/accountStore';
 import { useLinkedAccountStore } from '../../src/stores/linkedAccountStore';
@@ -66,7 +66,14 @@ const MENU_ITEM_STYLES: Record<string, { bg: string; icon: string }> = {
 export default function MoreScreen() {
   const { user, isDarkMode, toggleDarkMode, logout } = useAuthStore();
   const theme = isDarkMode ? colors.dark : colors.light;
-  const [activeTab, setActiveTab] = useState<Tab>('menu');
+  const params = useLocalSearchParams<{ tab?: string }>();
+  const [activeTab, setActiveTab] = useState<Tab>(() => {
+    const validTabs: Tab[] = ['menu', 'sidehustles', 'chat', 'profile', 'bankaccounts', 'security', 'virtualcard', 'notifications', 'helpsupport', 'billpay'];
+    if (params.tab && validTabs.includes(params.tab as Tab)) {
+      return params.tab as Tab;
+    }
+    return 'menu';
+  });
 
   if (activeTab === 'sidehustles') {
     return (
@@ -2449,6 +2456,7 @@ function BillPayScreen({
             try {
               await payBill(bill.id);
               Alert.alert('Success', `${bill.name} payment of $${bill.amount.toFixed(2)} processed!`);
+              fetchBills();
               fetchAccounts();
             } catch (err: any) {
               Alert.alert('Error', err?.response?.data?.message || 'Payment failed.');

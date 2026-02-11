@@ -145,7 +145,7 @@ export default function ExtraCashScreen() {
               </Text>
               <TouchableOpacity
                 style={[styles.bankBannerButton, { backgroundColor: theme.primary }]}
-                onPress={() => router.push('/(tabs)/more')}
+                onPress={() => router.push({ pathname: '/(tabs)/more', params: { tab: 'bankaccounts' } })}
                 activeOpacity={0.8}
               >
                 <Ionicons name="add-circle-outline" size={18} color="#FFFFFF" />
@@ -458,6 +458,42 @@ export default function ExtraCashScreen() {
                   5% fee
                 </Text>
               </TouchableOpacity>
+            </View>
+
+            {/* Optional Tip */}
+            <Text
+              style={[
+                styles.sectionLabel,
+                { color: theme.text, marginTop: spacing.xl },
+              ]}
+            >
+              Leave a Tip (Optional)
+            </Text>
+            <View style={styles.quickAmounts}>
+              {[0, 1, 3, 5].map((t) => (
+                <TouchableOpacity
+                  key={t}
+                  style={[
+                    styles.quickAmountBtn,
+                    {
+                      backgroundColor:
+                        tip === t ? theme.primary : theme.surfaceSecondary,
+                      borderColor: tip === t ? theme.primary : 'transparent',
+                    },
+                    tip === t && shadows.colored(theme.primary),
+                  ]}
+                  onPress={() => setTip(t)}
+                >
+                  <Text
+                    style={[
+                      styles.quickAmountText,
+                      { color: tip === t ? '#FFFFFF' : theme.text },
+                    ]}
+                  >
+                    {t === 0 ? 'None' : `$${t}`}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
 
             {/* Summary */}
